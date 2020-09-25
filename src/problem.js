@@ -1,4 +1,4 @@
-const PROBLEM_TABLE = 'CpNotesLambdaStack-problemsA8758FC1-YCONP0CMUGAF';
+const PROBLEM_TABLE = 'problems';
 const PROBLEM_PK = 'platform';
 
 const dynamodb = require('./dynamodb');

@@ -17,7 +17,8 @@ export class CpNotesLambdaStack extends cdk.Stack {
 
     const problemsTable = new dynamodb.Table(this, 'problems', {
       partitionKey: { name: 'platform', type: dynamodb.AttributeType.STRING },
-      sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING }
+      sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
+      tableName: 'problems'
     });
 
     const getProblemLambda = new lambda.Function(this, 'getProblems', {
