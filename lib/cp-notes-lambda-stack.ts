@@ -3,6 +3,7 @@ const apigateway = require('@aws-cdk/aws-apigateway');
 const dynamodb = require('@aws-cdk/aws-dynamodb');
 const lambda = require('@aws-cdk/aws-lambda');
 const cognito = require('@aws-cdk/aws-cognito');
+const iam = require('@aws-cdk/aws-iam');
 
 export class CpNotesLambdaStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -22,6 +23,15 @@ export class CpNotesLambdaStack extends cdk.Stack {
       tableName: 'problems'
     });
 
+    const cognitoPreSignUpLambda = new lambda.Function(this, 'cognitoPreSignUp', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: 'cognitoPreSignUp.handler',
+      code: new lambda.AssetCode('src'),
+    });
+    cognitoPreSignUpLambda.role.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
+    );
+
     const getProblemLambda = new lambda.Function(this, 'getProblems', {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'index.getProblems',
@@ -39,7 +49,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
 
     problemsResource.addMethod('GET', getProblemIntegration);
 
-    const userpool = new cognito.UserPool(this, 'cp-notes-users', {
+    const userPool = new cognito.UserPool(this, 'cp-notes-users', {
       userPoolName: 'cp-notes-users',
       selfSignUpEnabled: true,
       userVerification: {
@@ -47,6 +57,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
         emailBody: 'Hello there! Your verification code for cp-notes is {####}.',
         emailStyle: cognito.VerificationEmailStyle.CODE
       },
+      signInCaseSensitive: false,
       passwordPolicy: {
         minLength: 6
       },
@@ -58,7 +69,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
       accountRecovery: cognito.AccountRecovery.EMAIL_ONLY
     });
 
-    userpool.addClient('cp-notes-client', {
+    userPool.addClient('cp-notes-client', {
       userPoolClientName: 'cp-notes-client',
       generateSecret: false,
       authFlows: {
@@ -66,6 +77,16 @@ export class CpNotesLambdaStack extends cdk.Stack {
         userSrp: true,
         refreshToken: true
       }
+    });
+
+    userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, cognitoPreSignUpLambda);
+
+    const authorizer = new apigateway.CfnAuthorizer(this, 'cp-notes-auth', {
+      restApiId: api.restApiId,
+      name: 'cp-notes-auth',
+      type: 'COGNITO_USER_POOLS',
+      identitySource: 'method.request.header.Authorization',
+      providerArns: [userPool.userPoolArn]
     });
   }
 }
