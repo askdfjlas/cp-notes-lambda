@@ -1,5 +1,4 @@
-const aws = require('aws-sdk');
-const cognitoIdp = new aws.CognitoIdentityServiceProvider();
+const userPool = require('./userPool');
 
 const USERNAME_MIN_LENGTH = 3;
 const USERNAME_MAX_LENGTH = 20;
@@ -16,13 +15,8 @@ module.exports.handler = async function(event, context) {
     return;
   }
 
-  const params = {
-    UserPoolId: event.userPoolId,
-    Filter: `email = "${email}"`
-  };
-
-  const userMatches = await cognitoIdp.listUsers(params).promise();
-  if(userMatches.Users.length > 0) {
+  const userWithSameEmail = await userPool.queryEmail(email);
+  if(userWithSameEmail) {
     context.done(
         Error('That email has already been used!')
     );

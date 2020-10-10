@@ -10,3 +10,4 @@ cdk.out
 .parcel-cache
 
 .DS_Store
+ids_that_are_public_anyways.json

@@ -9,30 +9,33 @@ export class CpNotesLambdaStack extends cdk.Stack {
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const api = new apigateway.RestApi(this, 'cpNotes', {
-      defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: apigateway.Cors.ALL_METHODS
-      }
-    });
-    api.root.addMethod('ANY');
-
+    // DDB
     const problemsTable = new dynamodb.Table(this, 'problems', {
       partitionKey: { name: 'platform', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
       tableName: 'problems'
     });
 
+    // Lambda
     const cognitoPreSignUpLambda = new lambda.Function(this, 'cognitoPreSignUp', {
       runtime: lambda.Runtime.NODEJS_12_X,
-      handler: 'cognitoPreSignUp.handler',
-      code: new lambda.AssetCode('src'),
+      handler: 'preSignUp.handler',
+      code: new lambda.AssetCode('src/Cognito'),
     });
     cognitoPreSignUpLambda.role.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
     );
 
-    const getProblemLambda = new lambda.Function(this, 'getProblems', {
+    const getUserProfileLambda = new lambda.Function(this, 'getUserProfile', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: 'index.getUserProfile',
+      code: new lambda.AssetCode('src'),
+    });
+    getUserProfileLambda.role.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
+    );
+
+    const getProblemsLambda = new lambda.Function(this, 'getProblems', {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'index.getProblems',
       code: new lambda.AssetCode('src'),
@@ -42,13 +45,9 @@ export class CpNotesLambdaStack extends cdk.Stack {
       }
     });
 
-    problemsTable.grantReadWriteData(getProblemLambda);
+    problemsTable.grantReadWriteData(getProblemsLambda);
 
-    const problemsResource = api.root.addResource('problems');
-    const getProblemIntegration = new apigateway.LambdaIntegration(getProblemLambda);
-
-    problemsResource.addMethod('GET', getProblemIntegration);
-
+    // Cognito
     const userPool = new cognito.UserPool(this, 'cp-notes-users', {
       userPoolName: 'cp-notes-users',
       selfSignUpEnabled: true,
@@ -81,6 +80,16 @@ export class CpNotesLambdaStack extends cdk.Stack {
 
     userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, cognitoPreSignUpLambda);
 
+    // APIG
+    const api = new apigateway.RestApi(this, 'cpNotes', {
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS
+      }
+    });
+    api.root.addMethod('ANY');
+
+    // APIG authorizer
     const authorizer = new apigateway.CfnAuthorizer(this, 'cp-notes-auth', {
       restApiId: api.restApiId,
       name: 'cp-notes-auth',
@@ -88,5 +97,17 @@ export class CpNotesLambdaStack extends cdk.Stack {
       identitySource: 'method.request.header.Authorization',
       providerArns: [userPool.userPoolArn]
     });
+
+    // APIG resources
+    const problemsResource = api.root.addResource('problems');
+    const profileResource = api.root.addResource('profile');
+
+    // APIG lambda integrations
+    const getProblemsIntegration = new apigateway.LambdaIntegration(getProblemsLambda);
+    const getProfileIntegration = new apigateway.LambdaIntegration(getUserProfileLambda);
+
+    // APIG methods
+    problemsResource.addMethod('GET', getProblemsIntegration);
+    profileResource.addMethod('GET', getProfileIntegration);
   }
 }
