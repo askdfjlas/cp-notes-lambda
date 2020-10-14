@@ -1,4 +1,5 @@
 const problemModule = require('./problem');
+const contestModule = require('./contest');
 const usersModule = require('./Cognito/users');
 
 // Too lazy to deal with CORS :) (should actually set an origin in the future)
@@ -30,6 +31,13 @@ module.exports.getProblems = async function(event) {
   const problems = await problemModule.getProblems(platform);
 
   return proxyResponse(problems);
+}
+
+module.exports.getContests = async function(event) {
+  const platform = event.queryStringParameters.platform;
+  const contests = await contestModule.getContests(platform);
+
+  return proxyResponse(contests);
 }
 
 module.exports.getUserProfile = async function(event) {

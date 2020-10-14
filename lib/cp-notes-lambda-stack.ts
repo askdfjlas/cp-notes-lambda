@@ -16,6 +16,12 @@ export class CpNotesLambdaStack extends cdk.Stack {
       tableName: 'problems'
     });
 
+    const contestsTable = new dynamodb.Table(this, 'contests', {
+      partitionKey: { name: 'platform', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
+      tableName: 'contests'
+    });
+
     // Lambda
     const cognitoPreSignUpLambda = new lambda.Function(this, 'cognitoPreSignUp', {
       runtime: lambda.Runtime.NODEJS_12_X,
@@ -44,8 +50,18 @@ export class CpNotesLambdaStack extends cdk.Stack {
         PRIMARY_KEY: 'platform'
       }
     });
-
     problemsTable.grantReadWriteData(getProblemsLambda);
+
+    const getContestsLambda = new lambda.Function(this, 'getContests', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: 'index.getContests',
+      code: new lambda.AssetCode('src'),
+      environment: {
+        TABLE_NAME: contestsTable.tableName,
+        PRIMARY_KEY: 'platform'
+      }
+    });
+    contestsTable.grantReadWriteData(getContestsLambda);
 
     // Cognito
     const userPool = new cognito.UserPool(this, 'cp-notes-users', {
@@ -100,14 +116,17 @@ export class CpNotesLambdaStack extends cdk.Stack {
 
     // APIG resources
     const problemsResource = api.root.addResource('problems');
+    const contestsResource = api.root.addResource('contests');
     const profileResource = api.root.addResource('profile');
 
     // APIG lambda integrations
     const getProblemsIntegration = new apigateway.LambdaIntegration(getProblemsLambda);
+    const getContestsIntegration = new apigateway.LambdaIntegration(getContestsLambda);
     const getProfileIntegration = new apigateway.LambdaIntegration(getUserProfileLambda);
 
     // APIG methods
     problemsResource.addMethod('GET', getProblemsIntegration);
+    contestsResource.addMethod('GET', getContestsIntegration);
     profileResource.addMethod('GET', getProfileIntegration);
   }
 }
