@@ -50,7 +50,7 @@ async function query(params) {
 }
 
 async function queryPartitionKey(tableName, pk, value, projectedAttributes) {
-  let expressionAttributeNames = filterProjectedAttributes(projectedAttributes);
+  const expressionAttributeNames = filterProjectedAttributes(projectedAttributes);
 
   const params = {
     TableName: tableName,
@@ -68,5 +68,28 @@ async function queryPartitionKey(tableName, pk, value, projectedAttributes) {
   return filterRows(rows);
 }
 
+async function queryPrimaryKey(tableName, pk, sk, pkValue, skValue, projectedAttributes) {
+  const expressionAttributeNames = filterProjectedAttributes(projectedAttributes);
+
+  const params = {
+    TableName: tableName,
+    KeyConditionExpression: `${pk} = :pkVal AND begins_with(${sk}, :skVal)`,
+    ExpressionAttributeValues: {
+      ':pkVal': {
+        S: pkValue
+      },
+      ':skVal': {
+        S: skValue
+      }
+    },
+    ExpressionAttributeNames: expressionAttributeNames,
+    ProjectionExpression: projectedAttributes.join(',')
+  };
+
+  const rows = await query(params);
+  return filterRows(rows);
+}
+
 module.exports.query = query;
 module.exports.queryPartitionKey = queryPartitionKey;
+module.exports.queryPrimaryKey = queryPrimaryKey;

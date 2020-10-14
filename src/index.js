@@ -28,7 +28,8 @@ function proxyClientError(name, message) {
 
 module.exports.getProblems = async function(event) {
   const platform = event.queryStringParameters.platform;
-  const problems = await problemModule.getProblems(platform);
+  const contestId = event.queryStringParameters.contestId;
+  const problems = await problemModule.getProblems(platform, contestId);
 
   return proxyResponse(problems);
 }
