@@ -45,6 +45,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'index.getProblems',
       code: new lambda.AssetCode('src'),
+      timeout: cdk.Duration.seconds(6),
       environment: {
         TABLE_NAME: problemsTable.tableName,
         PRIMARY_KEY: 'platform'

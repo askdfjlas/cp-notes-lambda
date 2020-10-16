@@ -49,7 +49,7 @@ async function query(params) {
   });
 }
 
-async function queryPartitionKey(tableName, pk, value, projectedAttributes) {
+async function queryPartitionKey(tableName, pk, value, forward, projectedAttributes) {
   const expressionAttributeNames = filterProjectedAttributes(projectedAttributes);
 
   const params = {
@@ -61,7 +61,8 @@ async function queryPartitionKey(tableName, pk, value, projectedAttributes) {
       }
     },
     ExpressionAttributeNames: expressionAttributeNames,
-    ProjectionExpression: projectedAttributes.join(',')
+    ProjectionExpression: projectedAttributes.join(','),
+    ScanIndexForward: forward
   };
 
   const rows = await query(params);
