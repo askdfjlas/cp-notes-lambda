@@ -1,19 +1,18 @@
 const CONTEST_TABLE = 'contests';
 const CONTEST_PK = 'platform';
+const CONTEST_ID_LENGTH = 8;
 
 const dynamodb = require('./Dynamodb/dynamodb');
 const dynamodbUtils = require('./Dynamodb/dynamodbUtils');
 
-const CONTEST_ID_LENGTH = 8;
-
-function replaceContestSortKeys(contests) {
+function prettifyContestIds(contests) {
   for(let i = 0; i < contests.length; i++) {
     contests[i].sk = dynamodbUtils.removePrefixZeroes(contests[i].sk);
   }
 }
 
-function inflateContestPrefixZeroes(inputString) {
-  return dynamodbUtils.inflatePrefixZeroes(inputString, CONTEST_ID_LENGTH);
+function inflateContestId(contestId) {
+  return dynamodbUtils.inflatePrefixZeroes(contestId, CONTEST_ID_LENGTH);
 }
 
 async function getContests(platform) {
@@ -22,9 +21,9 @@ async function getContests(platform) {
     'sk', 'name'
   ]);
 
-  replaceContestSortKeys(contests);
+  prettifyContestIds(contests);
   return contests;
 }
 
 module.exports.getContests = getContests;
-module.exports.inflateContestPrefixZeroes = inflateContestPrefixZeroes;
+module.exports.inflateContestId = inflateContestId;

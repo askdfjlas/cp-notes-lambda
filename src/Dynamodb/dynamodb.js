@@ -1,46 +1,8 @@
 const aws = require('aws-sdk');
 const dynamodb = new aws.DynamoDB({ region: 'us-east-1' });
+const dynamodbUtils = require('./dynamodbUtils');
 
-const USED_KEYWORDS = ['name'];
-
-function filterType(data) {
-  if(data.hasOwnProperty('S'))
-    return data.S;
-
-  return data.N;
-}
-
-function filterRows(rows) {
-  var filteredRows = [];
-
-  for(const row of rows.Items) {
-    var filteredRow = {};
-    for(const property in row) {
-      filteredRow[property] = filterType(row[property]);
-    }
-    filteredRows.push(filteredRow);
-  }
-
-  return filteredRows;
-}
-
-function filterProjectedAttributes(projectedAttributes) {
-  let expressionAttributeNames = {};
-
-  for(let i = 0; i < projectedAttributes.length; i++) {
-    if(USED_KEYWORDS.includes(projectedAttributes[i])) {
-      const oldName = projectedAttributes[i];
-      const newName = `#${projectedAttributes[i]}Replacement`;
-
-      projectedAttributes[i] = newName;
-      expressionAttributeNames[newName] = oldName;
-    }
-  }
-
-  return expressionAttributeNames;
-}
-
-async function query(params) {
+async function queryPromise(params) {
   return new Promise((resolve, reject) => {
     dynamodb.query(params, (err, data) => {
       if(err) reject(err);
@@ -49,8 +11,18 @@ async function query(params) {
   });
 }
 
+async function putItemPromise(params) {
+  return new Promise((resolve, reject) => {
+    dynamodb.putItem(params, (err, data) => {
+      if(err) reject(err);
+      else resolve(data);
+    });
+  });
+}
+
 async function queryPartitionKey(tableName, pk, value, forward, projectedAttributes) {
-  const expressionAttributeNames = filterProjectedAttributes(projectedAttributes);
+  const expressionAttributeNames =
+    dynamodbUtils.filterProjectedAttributes(projectedAttributes);
 
   const params = {
     TableName: tableName,
@@ -65,12 +37,13 @@ async function queryPartitionKey(tableName, pk, value, forward, projectedAttribu
     ScanIndexForward: forward
   };
 
-  const rows = await query(params);
-  return filterRows(rows);
+  const rows = await queryPromise(params);
+  return dynamodbUtils.filterRows(rows);
 }
 
 async function queryPrimaryKey(tableName, pk, sk, pkValue, skValue, projectedAttributes) {
-  const expressionAttributeNames = filterProjectedAttributes(projectedAttributes);
+  const expressionAttributeNames =
+    dynamodbUtils.filterProjectedAttributes(projectedAttributes);
 
   const params = {
     TableName: tableName,
@@ -87,10 +60,24 @@ async function queryPrimaryKey(tableName, pk, sk, pkValue, skValue, projectedAtt
     ProjectionExpression: projectedAttributes.join(',')
   };
 
-  const rows = await query(params);
-  return filterRows(rows);
+  const rows = await queryPromise(params);
+  return dynamodbUtils.filterRows(rows);
 }
 
-module.exports.query = query;
+async function insertValue(tableName, pk, valueObject) {
+  const item = dynamodbUtils.createItemFromObject(valueObject);
+
+  const params = {
+    TableName: tableName,
+    Item: item,
+    ConditionExpression: `attribute_not_exists(${pk})`
+  };
+
+  return await putItemPromise(params);
+}
+
+module.exports.queryPromise = queryPromise;
+module.exports.putItemPromise = putItemPromise;
 module.exports.queryPartitionKey = queryPartitionKey;
 module.exports.queryPrimaryKey = queryPrimaryKey;
+module.exports.insertValue = insertValue;

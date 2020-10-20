@@ -1,5 +1,6 @@
 const problemModule = require('./problem');
 const contestModule = require('./contest');
+const noteModule = require('./note');
 const usersModule = require('./Cognito/users');
 
 // Too lazy to deal with CORS :) (should actually set an origin in the future)
@@ -50,4 +51,16 @@ module.exports.getUserProfile = async function(event) {
     return proxyClientError('UserNotFound', 'User not found!');
 
   return proxyResponse(profile);
+}
+
+module.exports.addNote = async function(event) {
+  const body = JSON.parse(event.body);
+  const username = body.username;
+  const platform = body.platform;
+  const problemId = body.problemId;
+  const tokenString = event.headers['Authorization'];
+
+  await noteModule.addNote(username, platform, problemId, tokenString);
+  
+  return proxyResponse('Success');
 }

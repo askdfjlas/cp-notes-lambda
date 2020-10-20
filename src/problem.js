@@ -5,36 +5,52 @@ const contestModule = require('./contest');
 const dynamodb = require('./Dynamodb/dynamodb');
 const dynamodbUtils = require('./Dynamodb/dynamodbUtils');
 
-function replaceProblemSortKeys(problems) {
+function prettifyProblemIds(problems) {
   for(let i = 0; i < problems.length; i++) {
-    const arr = problems[i].sk.split('#');
-
-    const prettyContestId = dynamodbUtils.removePrefixZeroes(arr[0]);
-    const problemId = arr[1];
-
-    problems[i].sk = prettyContestId + problemId;
+    problems[i].sk = dynamodbUtils.removePrefixZeroes(problems[i].sk);
   }
+}
+
+function inflateProblemId(problemId) {
+  const arr = problemId.split('#');
+
+  const inflatedContestId = contestModule.inflateContestId(arr[0]);
+  const problemCode = arr[1];
+
+  return `${inflatedContestId}#${problemCode}`;
 }
 
 async function getProblems(platform, contestId) {
   var problems;
 
   if(contestId) {
-    dbContestId = contestModule.inflateContestPrefixZeroes(contestId);
+    dbContestId = contestModule.inflateContestId(contestId);
     problems =  await dynamodb.queryPrimaryKey(PROBLEM_TABLE, PROBLEM_PK,
       'sk', platform, dbContestId, [
         'sk', 'name'
-    ]);
+      ]
+    );
   }
   else {
     problems = await dynamodb.queryPartitionKey(PROBLEM_TABLE, PROBLEM_PK,
       platform, true, [
         'sk', 'name'
-    ]);
+      ]
+    );
   }
 
-  replaceProblemSortKeys(problems);
+  prettifyProblemIds(problems);
   return problems;
 }
 
+async function checkExistence(platform, dbProblemId) {
+  const dbRows = await dynamodb.queryPrimaryKey(PROBLEM_TABLE, PROBLEM_PK,
+    'sk', platform, dbProblemId, [ 'sk' ]
+  );
+
+  return dbRows.length > 0;
+}
+
 module.exports.getProblems = getProblems;
+module.exports.inflateProblemId = inflateProblemId;
+module.exports.checkExistence = checkExistence;
