@@ -20,6 +20,17 @@ function inflateProblemId(problemId) {
   return `${inflatedContestId}#${problemCode}`;
 }
 
+function getProblemLink(platform, problemId) {
+  switch(platform) {
+    case 'CodeForces':
+      const contestCode = problemId.split('#')[0];
+      const letter = problemId.split('#')[1];
+      return `https://codeforces.com/contest/${contestCode}/problem/${letter}`;
+    default:
+      return null;
+  }
+}
+
 async function getProblems(platform, contestId) {
   var problems;
 
@@ -43,6 +54,30 @@ async function getProblems(platform, contestId) {
   return problems;
 }
 
+async function getProblemInfo(platform, problemId) {
+  const contestId = problemId.split('#')[0];
+  const dbProblemId = inflateProblemId(problemId);
+
+  const problemRows = await dynamodb.queryPrimaryKey(PROBLEM_TABLE, PROBLEM_PK,
+    'sk', platform, dbProblemId, [ 'name' ]
+  );
+
+  if(problemRows.length === 0) {
+    throw Error('Problem not found!');
+  }
+
+  const contestInfo = await contestModule.getContestInfo(platform, contestId);
+  const problemRow = problemRows[0];
+
+  return {
+    problemCode: problemId.replace('#', ''),
+    problemName: problemRow.name,
+    contestCode: contestInfo.code,
+    contestName: contestInfo.name,
+    link: getProblemLink(platform, problemId)
+  };
+}
+
 async function checkExistence(platform, dbProblemId) {
   const dbRows = await dynamodb.queryPrimaryKey(PROBLEM_TABLE, PROBLEM_PK,
     'sk', platform, dbProblemId, [ 'sk' ]
@@ -53,4 +88,5 @@ async function checkExistence(platform, dbProblemId) {
 
 module.exports.getProblems = getProblems;
 module.exports.inflateProblemId = inflateProblemId;
+module.exports.getProblemInfo = getProblemInfo;
 module.exports.checkExistence = checkExistence;

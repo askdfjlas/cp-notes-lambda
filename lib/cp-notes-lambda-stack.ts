@@ -54,6 +54,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(6)
     });
     problemsTable.grantReadWriteData(getProblemsLambda);
+    contestsTable.grantReadWriteData(getProblemsLambda);
 
     const getContestsLambda = new lambda.Function(this, 'getContests', {
       runtime: lambda.Runtime.NODEJS_12_X,

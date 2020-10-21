@@ -30,8 +30,14 @@ function proxyClientError(name, message) {
 module.exports.getProblems = async function(event) {
   const platform = event.queryStringParameters.platform;
   const contestId = event.queryStringParameters.contestId;
-  const problems = await problemModule.getProblems(platform, contestId);
+  const problemId = event.queryStringParameters.problemId;
 
+  if(problemId) {
+    const problemInfo = await problemModule.getProblemInfo(platform, problemId);
+    return proxyResponse(problemInfo);
+  }
+
+  const problems = await problemModule.getProblems(platform, contestId);
   return proxyResponse(problems);
 }
 
@@ -61,6 +67,13 @@ module.exports.addNote = async function(event) {
   const tokenString = event.headers['Authorization'];
 
   await noteModule.addNote(username, platform, problemId, tokenString);
-  
+
   return proxyResponse('Success');
 }
+
+module.exports.getProblems({
+  queryStringParameters: {
+    platform: 'CodeForces',
+    problemId: '1#A'
+  }
+});

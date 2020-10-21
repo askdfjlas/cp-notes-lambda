@@ -25,5 +25,24 @@ async function getContests(platform) {
   return contests;
 }
 
+async function getContestInfo(platform, contestId) {
+  const dbContestId = inflateContestId(contestId);
+
+  const contestRows = await dynamodb.queryPrimaryKey(CONTEST_TABLE, CONTEST_PK,
+    'sk', platform, dbContestId, [ 'name' ]
+  );
+
+  if(contestRows.length === 0) {
+    throw Error('Contest not found!');
+  }
+  const contestRow = contestRows[0];
+
+  return {
+    name: contestRow.name,
+    code: contestId
+  };
+}
+
 module.exports.getContests = getContests;
+module.exports.getContestInfo = getContestInfo;
 module.exports.inflateContestId = inflateContestId;
