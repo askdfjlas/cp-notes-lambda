@@ -70,10 +70,3 @@ module.exports.addNote = async function(event) {
 
   return proxyResponse('Success');
 }
-
-module.exports.getProblems({
-  queryStringParameters: {
-    platform: 'CodeForces',
-    problemId: '1#A'
-  }
-});
