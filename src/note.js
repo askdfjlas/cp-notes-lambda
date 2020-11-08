@@ -5,12 +5,9 @@ const problemModule = require('./problem');
 const dynamodb = require('./Dynamodb/dynamodb');
 const jwt = require('./Cognito/jwt');
 
-async function addNote(username, platform, problemId, tokenString) {
-  const authenticatedUser = await jwt.verify(tokenString);
-
-  if(username !== authenticatedUser) {
-    throw Error('Not logged in as the requested user!')
-  }
+async function addOrEditNote(username, platform, problemId, title, solved,
+                             content, published, tokenString, overwrite) {
+  await jwt.verifyUser(username, tokenString);
 
   const dbProblemId = problemModule.inflateProblemId(problemId);
   const problemExists = await problemModule.checkExistence(platform, dbProblemId);
@@ -21,11 +18,15 @@ async function addNote(username, platform, problemId, tokenString) {
   const dbNoteId = `${platform}#${dbProblemId}`;
   const noteObject = {
     [ NOTE_PK ]: username,
-    sk: dbNoteId
+    sk: dbNoteId,
+    title: title,
+    solved: solved,
+    content: content,
+    published: published
   };
 
   try {
-    return await dynamodb.insertValue(NOTE_TABLE, NOTE_PK, noteObject);
+    return await dynamodb.insertValue(NOTE_TABLE, NOTE_PK, noteObject, overwrite);
   }
   catch(err) {
     if(err.name !== 'ConditionalCheckFailedException')
@@ -33,4 +34,4 @@ async function addNote(username, platform, problemId, tokenString) {
   }
 }
 
-module.exports.addNote = addNote;
+module.exports.addOrEditNote = addOrEditNote;

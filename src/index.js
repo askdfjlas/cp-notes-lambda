@@ -59,14 +59,27 @@ module.exports.getUserProfile = async function(event) {
   return proxyResponse(profile);
 }
 
-module.exports.addNote = async function(event) {
+async function addOrEditNote(event, overwrite) {
   const body = JSON.parse(event.body);
   const username = body.username;
   const platform = body.platform;
   const problemId = body.problemId;
+  const title = body.title || '';
+  const solved = body.solved || '0';
+  const content = body.content || '';
+  const published = body.published || false;
   const tokenString = event.headers['Authorization'];
 
-  await noteModule.addNote(username, platform, problemId, tokenString);
+  await noteModule.addOrEditNote(username, platform, problemId, title, solved,
+                                 content, published, tokenString, overwrite);
 
   return proxyResponse('Success');
+}
+
+module.exports.addNote = async function(event) {
+  return await addOrEditNote(event, false);
+}
+
+module.exports.editNote = async function(event) {
+  return await addOrEditNote(event, true);
 }

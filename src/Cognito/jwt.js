@@ -15,7 +15,7 @@ async function getJwks() {
   return kidMap;
 }
 
-module.exports.verify = async function(tokenString) {
+async function verify(tokenString) {
   const tokenSections = tokenString.split('.');
   if(tokenSections.length < 2) {
     throw Error('Invalid token');
@@ -47,3 +47,13 @@ module.exports.verify = async function(tokenString) {
 
   return payload.username;
 }
+
+async function verifyUser(username, tokenString) {
+  const authenticatedUser = await verify(tokenString);
+  if(username !== authenticatedUser) {
+    throw Error('Not logged in as the requested user!')
+  }
+}
+
+module.exports.verify = verify;
+module.exports.verifyUser = verifyUser;

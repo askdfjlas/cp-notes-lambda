@@ -71,6 +71,14 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesTable.grantReadWriteData(addNoteLambda);
     problemsTable.grantReadWriteData(addNoteLambda);
 
+    const editNoteLambda = new lambda.Function(this, 'editNote', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: 'index.editNote',
+      code: new lambda.AssetCode('src')
+    });
+    notesTable.grantReadWriteData(editNoteLambda);
+    problemsTable.grantReadWriteData(editNoteLambda);
+
     // Cognito
     const userPool = new cognito.UserPool(this, 'cp-notes-users', {
       userPoolName: 'cp-notes-users',
@@ -133,11 +141,13 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const getContestsIntegration = new apigateway.LambdaIntegration(getContestsLambda);
     const getProfileIntegration = new apigateway.LambdaIntegration(getUserProfileLambda);
     const addNoteIntegration = new apigateway.LambdaIntegration(addNoteLambda);
+    const editNoteIntegration = new apigateway.LambdaIntegration(editNoteLambda);
 
     // APIG methods
     problemsResource.addMethod('GET', getProblemsIntegration);
     contestsResource.addMethod('GET', getContestsIntegration);
     profileResource.addMethod('GET', getProfileIntegration);
     notesResource.addMethod('POST', addNoteIntegration);
+    notesResource.addMethod('PUT', editNoteIntegration);
   }
 }

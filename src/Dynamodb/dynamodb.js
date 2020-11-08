@@ -20,6 +20,15 @@ async function putItemPromise(params) {
   });
 }
 
+async function deleteItemPromise(params) {
+  return new Promise((resolve, reject) => {
+    dynamodb.deleteItem(params, (err, data) => {
+      if(err) reject(err);
+      else resolve(data);
+    });
+  });
+}
+
 async function queryPartitionKey(tableName, pk, value, forward, projectedAttributes) {
   const expressionAttributeNames =
     dynamodbUtils.filterProjectedAttributes(projectedAttributes);
@@ -38,6 +47,7 @@ async function queryPartitionKey(tableName, pk, value, forward, projectedAttribu
   };
 
   const rows = await queryPromise(params);
+  console.log(rows);
   return dynamodbUtils.filterRows(rows);
 }
 
@@ -64,14 +74,29 @@ async function queryPrimaryKey(tableName, pk, sk, pkValue, skValue, projectedAtt
   return dynamodbUtils.filterRows(rows);
 }
 
-async function insertValue(tableName, pk, valueObject) {
+async function deletePrimaryKey(tableName, pk, sk, pkValue, skValue) {
+  const params = {
+    TableName: tableName,
+    Key: {
+      [ pk ]: { S: pkValue },
+      [ sk ]: { S: skValue }
+    }
+  };
+
+  await deleteItemPromise(params);
+}
+
+async function insertValue(tableName, pk, valueObject, overwrite) {
   const item = dynamodbUtils.createItemFromObject(valueObject);
 
   const params = {
     TableName: tableName,
-    Item: item,
-    ConditionExpression: `attribute_not_exists(${pk})`
+    Item: item
   };
+
+  if(!overwrite) {
+    params.ConditionExpression = `attribute_not_exists(${pk})`;
+  }
 
   return await putItemPromise(params);
 }

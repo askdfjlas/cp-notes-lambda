@@ -3,7 +3,8 @@ const USED_DDB_KEYWORDS = ['name'];
 function filterType(data) {
   if(data.hasOwnProperty('S'))
     return data.S;
-
+  else if(data.hasOwnProperty('BOOL'))
+    return data.BOOL;
   return data.N;
 }
 
@@ -67,6 +68,9 @@ function createItemFromObject(valueObject) {
     const value = valueObject[property];
     if((typeof value) === 'string') {
       item[property] = { S: value };
+    }
+    else if((typeof value) === 'boolean') {
+      item[property] = { BOOL: value };
     }
     else {
       item[property] = { N: value };
