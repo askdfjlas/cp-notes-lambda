@@ -51,7 +51,7 @@ async function verify(tokenString) {
 async function verifyUser(username, tokenString) {
   const authenticatedUser = await verify(tokenString);
   if(username !== authenticatedUser) {
-    throw Error('Not logged in as the requested user!')
+    throw Error('Not logged in as the requested user!');
   }
 }
 

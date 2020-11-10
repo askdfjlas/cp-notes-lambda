@@ -47,17 +47,22 @@ async function queryPartitionKey(tableName, pk, value, forward, projectedAttribu
   };
 
   const rows = await queryPromise(params);
-  console.log(rows);
   return dynamodbUtils.filterRows(rows);
 }
 
-async function queryPrimaryKey(tableName, pk, sk, pkValue, skValue, projectedAttributes) {
-  const expressionAttributeNames =
-    dynamodbUtils.filterProjectedAttributes(projectedAttributes);
+async function queryPrimaryKey(tableName, pk, sk, pkValue, skValue,
+                               projectedAttributes, exactMatch) {
+  let skCondition;
+  if(exactMatch) {
+    skCondition = `${sk} = :skVal`;
+  }
+  else {
+    skCondition = `begins_with(${sk}, :skVal)`;
+  }
 
   const params = {
     TableName: tableName,
-    KeyConditionExpression: `${pk} = :pkVal AND begins_with(${sk}, :skVal)`,
+    KeyConditionExpression: `${pk} = :pkVal AND ${skCondition}`,
     ExpressionAttributeValues: {
       ':pkVal': {
         S: pkValue
@@ -65,10 +70,16 @@ async function queryPrimaryKey(tableName, pk, sk, pkValue, skValue, projectedAtt
       ':skVal': {
         S: skValue
       }
-    },
-    ExpressionAttributeNames: expressionAttributeNames,
-    ProjectionExpression: projectedAttributes.join(',')
+    }
   };
+
+  if(projectedAttributes) {
+    const expressionAttributeNames =
+      dynamodbUtils.filterProjectedAttributes(projectedAttributes);
+
+    params.ExpressionAttributeNames = expressionAttributeNames;
+    params.ProjectionExpression = projectedAttributes.join(',');
+  }
 
   const rows = await queryPromise(params);
   return dynamodbUtils.filterRows(rows);

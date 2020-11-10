@@ -71,6 +71,13 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesTable.grantReadWriteData(addNoteLambda);
     problemsTable.grantReadWriteData(addNoteLambda);
 
+    const getNoteLambda = new lambda.Function(this, 'getNote', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: 'index.getNote',
+      code: new lambda.AssetCode('src')
+    });
+    notesTable.grantReadWriteData(getNoteLambda);
+
     const editNoteLambda = new lambda.Function(this, 'editNote', {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'index.editNote',
@@ -140,6 +147,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const getProblemsIntegration = new apigateway.LambdaIntegration(getProblemsLambda);
     const getContestsIntegration = new apigateway.LambdaIntegration(getContestsLambda);
     const getProfileIntegration = new apigateway.LambdaIntegration(getUserProfileLambda);
+    const getNoteIntegration = new apigateway.LambdaIntegration(getNoteLambda);
     const addNoteIntegration = new apigateway.LambdaIntegration(addNoteLambda);
     const editNoteIntegration = new apigateway.LambdaIntegration(editNoteLambda);
 
@@ -147,6 +155,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     problemsResource.addMethod('GET', getProblemsIntegration);
     contestsResource.addMethod('GET', getContestsIntegration);
     profileResource.addMethod('GET', getProfileIntegration);
+    notesResource.addMethod('GET', getNoteIntegration);
     notesResource.addMethod('POST', addNoteIntegration);
     notesResource.addMethod('PUT', editNoteIntegration);
   }

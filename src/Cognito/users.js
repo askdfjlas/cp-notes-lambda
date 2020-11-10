@@ -1,5 +1,6 @@
-const jwt = require('../Cognito/jwt');
+const jwt = require('./jwt');
 const userPool = require('./userPool');
+const utils = require('../utils');
 
 module.exports.getProfile = async function(username, tokenString) {
   try {
@@ -11,8 +12,9 @@ module.exports.getProfile = async function(username, tokenString) {
   }
 
   const requestedUser = await userPool.queryUsername(username);
-  if(!requestedUser)
-    return null;
+  if(!requestedUser) {
+    utils.throwCustomError('UserNotFound', 'User not found!');
+  }
 
   var userProfile = {
     username: username

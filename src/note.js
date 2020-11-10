@@ -4,6 +4,28 @@ const NOTE_PK = 'username';
 const problemModule = require('./problem');
 const dynamodb = require('./Dynamodb/dynamodb');
 const jwt = require('./Cognito/jwt');
+const utils = require('./utils');
+
+async function getNote(username, platform, problemId, tokenString) {
+  const dbProblemId = problemModule.inflateProblemId(problemId);
+  const dbNoteId = `${platform}#${dbProblemId}`;
+
+  const noteRows = await dynamodb.queryPrimaryKey(
+    NOTE_TABLE, NOTE_PK, 'sk', username, dbNoteId, null, true
+  );
+
+  if(noteRows.length === 0) {
+    utils.throwCustomError('NoteNotFound', 'Note not found!');
+  }
+
+  let noteRow = noteRows[0];
+  if(!noteRow.published) {
+    await jwt.verifyUser(username, tokenString);
+  }
+
+  delete noteRow.sk;
+  return noteRow;
+}
 
 async function addOrEditNote(username, platform, problemId, title, solved,
                              content, published, tokenString, overwrite) {
@@ -34,4 +56,5 @@ async function addOrEditNote(username, platform, problemId, title, solved,
   }
 }
 
+module.exports.getNote = getNote;
 module.exports.addOrEditNote = addOrEditNote;

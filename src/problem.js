@@ -32,7 +32,7 @@ function getProblemLink(platform, problemId) {
 }
 
 async function getProblems(platform, contestId) {
-  var problems;
+  let problems;
 
   if(contestId) {
     dbContestId = contestModule.inflateContestId(contestId);

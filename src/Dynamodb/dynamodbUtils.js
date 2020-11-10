@@ -73,7 +73,7 @@ function createItemFromObject(valueObject) {
       item[property] = { BOOL: value };
     }
     else {
-      item[property] = { N: value };
+      item[property] = { N: '' + value };
     }
   }
 
