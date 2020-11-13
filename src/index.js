@@ -72,8 +72,8 @@ async function addOrEditNote(event, overwrite) {
   const problemId = '' + body.problemId;
   const title = body.title ? '' + body.title : '';
   const solved = body.solved ? Number(body.solved) : 0;
-  const content = body.content ? '' + body.content : '';
-  const published = body.published === undefined ? false : body.published;
+  const content = body.content ? '' + body.content : '[]';
+  const published = body.published === undefined ? false : !!body.published;
   const tokenString = event.headers['Authorization'];
 
   await noteModule.addOrEditNote(username, platform, problemId, title, solved,
@@ -101,6 +101,22 @@ module.exports.getNote = async function(event) {
       username, platform, problemId, tokenString
     );
     return proxyResponse(noteInfo);
+  }
+  catch(err) {
+    return proxyClientError(err);
+  }
+}
+
+module.exports.deleteNote = async function(event) {
+  const body = JSON.parse(event.body);
+  const username = '' + body.username;
+  const platform = '' + body.platform;
+  const problemId = '' + body.problemId;
+  const tokenString = event.headers['Authorization'];
+
+  try {
+    await noteModule.deleteNote(username, platform, problemId, tokenString);
+    return proxyResponse('Success');
   }
   catch(err) {
     return proxyClientError(err);

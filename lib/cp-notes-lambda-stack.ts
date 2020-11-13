@@ -86,6 +86,13 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesTable.grantReadWriteData(editNoteLambda);
     problemsTable.grantReadWriteData(editNoteLambda);
 
+    const deleteNoteLambda = new lambda.Function(this, 'deleteNote', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: 'index.deleteNote',
+      code: new lambda.AssetCode('src')
+    });
+    notesTable.grantReadWriteData(deleteNoteLambda);
+
     // Cognito
     const userPool = new cognito.UserPool(this, 'cp-notes-users', {
       userPoolName: 'cp-notes-users',
@@ -150,6 +157,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const getNoteIntegration = new apigateway.LambdaIntegration(getNoteLambda);
     const addNoteIntegration = new apigateway.LambdaIntegration(addNoteLambda);
     const editNoteIntegration = new apigateway.LambdaIntegration(editNoteLambda);
+    const deleteNoteIntegration = new apigateway.LambdaIntegration(deleteNoteLambda);
 
     // APIG methods
     problemsResource.addMethod('GET', getProblemsIntegration);
@@ -158,5 +166,6 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesResource.addMethod('GET', getNoteIntegration);
     notesResource.addMethod('POST', addNoteIntegration);
     notesResource.addMethod('PUT', editNoteIntegration);
+    notesResource.addMethod('DELETE', deleteNoteIntegration);
   }
 }

@@ -5,7 +5,7 @@ function filterType(data) {
     return data.S;
   else if(data.hasOwnProperty('BOOL'))
     return data.BOOL;
-  return data.N;
+  return Number(data.N);
 }
 
 function filterRows(rows) {

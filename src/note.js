@@ -56,5 +56,17 @@ async function addOrEditNote(username, platform, problemId, title, solved,
   }
 }
 
+async function deleteNote(username, platform, problemId, tokenString) {
+  await jwt.verifyUser(username, tokenString);
+
+  const dbProblemId = problemModule.inflateProblemId(problemId);
+  const dbNoteId = `${platform}#${dbProblemId}`;
+
+  await dynamodb.deletePrimaryKey(
+    NOTE_TABLE, NOTE_PK, 'sk', username, dbNoteId
+  );
+}
+
 module.exports.getNote = getNote;
 module.exports.addOrEditNote = addOrEditNote;
+module.exports.deleteNote = deleteNote;

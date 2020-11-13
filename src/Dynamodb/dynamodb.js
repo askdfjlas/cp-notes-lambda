@@ -52,14 +52,7 @@ async function queryPartitionKey(tableName, pk, value, forward, projectedAttribu
 
 async function queryPrimaryKey(tableName, pk, sk, pkValue, skValue,
                                projectedAttributes, exactMatch) {
-  let skCondition;
-  if(exactMatch) {
-    skCondition = `${sk} = :skVal`;
-  }
-  else {
-    skCondition = `begins_with(${sk}, :skVal)`;
-  }
-
+  const skCondition = exactMatch ? `${sk} = :skVal` : `begins_with(${sk}, :skVal)`;
   const params = {
     TableName: tableName,
     KeyConditionExpression: `${pk} = :pkVal AND ${skCondition}`,
@@ -116,4 +109,5 @@ module.exports.queryPromise = queryPromise;
 module.exports.putItemPromise = putItemPromise;
 module.exports.queryPartitionKey = queryPartitionKey;
 module.exports.queryPrimaryKey = queryPrimaryKey;
+module.exports.deletePrimaryKey = deletePrimaryKey;
 module.exports.insertValue = insertValue;
