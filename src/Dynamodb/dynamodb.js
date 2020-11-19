@@ -30,9 +30,6 @@ async function deleteItemPromise(params) {
 }
 
 async function queryPartitionKey(tableName, pk, value, forward, projectedAttributes) {
-  const expressionAttributeNames =
-    dynamodbUtils.filterProjectedAttributes(projectedAttributes);
-
   const params = {
     TableName: tableName,
     KeyConditionExpression: `${pk} = :val`,
@@ -41,10 +38,16 @@ async function queryPartitionKey(tableName, pk, value, forward, projectedAttribu
         S: value
       }
     },
-    ExpressionAttributeNames: expressionAttributeNames,
-    ProjectionExpression: projectedAttributes.join(','),
     ScanIndexForward: forward
   };
+
+  if(projectedAttributes) {
+    const expressionAttributeNames =
+      dynamodbUtils.filterProjectedAttributes(projectedAttributes);
+
+    params.ExpressionAttributeNames = expressionAttributeNames;
+    params.ProjectionExpression = projectedAttributes.join(',');
+  }
 
   const rows = await queryPromise(params);
   return dynamodbUtils.filterRows(rows);

@@ -6,7 +6,18 @@ const dynamodb = require('./Dynamodb/dynamodb');
 const jwt = require('./Cognito/jwt');
 const utils = require('./utils');
 
-async function getNote(username, platform, problemId, tokenString) {
+async function getNotes(username) {
+  const projectedAttributes = [
+    'published', 'title', 'platform', 'contestName', 'contestCode', 'problemSk',
+    'problemCode', 'problemName', 'solved'
+  ];
+
+  return await dynamodb.queryPartitionKey(
+    NOTE_TABLE, NOTE_PK, username, true, projectedAttributes
+  );
+}
+
+async function getNoteInfo(username, platform, problemId, tokenString) {
   const dbProblemId = problemModule.inflateProblemId(problemId);
   const dbNoteId = `${platform}#${dbProblemId}`;
 
@@ -32,9 +43,10 @@ async function addOrEditNote(username, platform, problemId, title, solved,
   await jwt.verifyUser(username, tokenString);
 
   const dbProblemId = problemModule.inflateProblemId(problemId);
-  const problemExists = await problemModule.checkExistence(platform, dbProblemId);
-  if(!problemExists) {
-    throw Error('Requested problem does not exist!')
+  const problemInfo = await problemModule.getProblemInfo(platform, problemId);
+
+  if(!title) {
+    title = `Notes for ${problemInfo.problemName}`;
   }
 
   const dbNoteId = `${platform}#${dbProblemId}`;
@@ -44,7 +56,13 @@ async function addOrEditNote(username, platform, problemId, title, solved,
     title: title,
     solved: solved,
     content: content,
-    published: published
+    published: published,
+    platform: platform,
+    problemCode: problemInfo.problemCode,
+    problemName: problemInfo.problemName,
+    problemSk: problemId,
+    contestName: problemInfo.contestName,
+    contestCode: problemInfo.contestCode
   };
 
   try {
@@ -67,6 +85,7 @@ async function deleteNote(username, platform, problemId, tokenString) {
   );
 }
 
-module.exports.getNote = getNote;
+module.exports.getNotes = getNotes;
+module.exports.getNoteInfo = getNoteInfo;
 module.exports.addOrEditNote = addOrEditNote;
 module.exports.deleteNote = deleteNote;

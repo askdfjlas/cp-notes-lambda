@@ -70,13 +70,14 @@ export class CpNotesLambdaStack extends cdk.Stack {
     });
     notesTable.grantReadWriteData(addNoteLambda);
     problemsTable.grantReadWriteData(addNoteLambda);
+    contestsTable.grantReadWriteData(addNoteLambda);
 
-    const getNoteLambda = new lambda.Function(this, 'getNote', {
+    const getNotesLambda = new lambda.Function(this, 'getNotes', {
       runtime: lambda.Runtime.NODEJS_12_X,
-      handler: 'index.getNote',
+      handler: 'index.getNotes',
       code: new lambda.AssetCode('src')
     });
-    notesTable.grantReadWriteData(getNoteLambda);
+    notesTable.grantReadWriteData(getNotesLambda);
 
     const editNoteLambda = new lambda.Function(this, 'editNote', {
       runtime: lambda.Runtime.NODEJS_12_X,
@@ -85,6 +86,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     });
     notesTable.grantReadWriteData(editNoteLambda);
     problemsTable.grantReadWriteData(editNoteLambda);
+    contestsTable.grantReadWriteData(editNoteLambda);
 
     const deleteNoteLambda = new lambda.Function(this, 'deleteNote', {
       runtime: lambda.Runtime.NODEJS_12_X,
@@ -154,7 +156,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const getProblemsIntegration = new apigateway.LambdaIntegration(getProblemsLambda);
     const getContestsIntegration = new apigateway.LambdaIntegration(getContestsLambda);
     const getProfileIntegration = new apigateway.LambdaIntegration(getUserProfileLambda);
-    const getNoteIntegration = new apigateway.LambdaIntegration(getNoteLambda);
+    const getNotesIntegration = new apigateway.LambdaIntegration(getNotesLambda);
     const addNoteIntegration = new apigateway.LambdaIntegration(addNoteLambda);
     const editNoteIntegration = new apigateway.LambdaIntegration(editNoteLambda);
     const deleteNoteIntegration = new apigateway.LambdaIntegration(deleteNoteLambda);
@@ -163,7 +165,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     problemsResource.addMethod('GET', getProblemsIntegration);
     contestsResource.addMethod('GET', getContestsIntegration);
     profileResource.addMethod('GET', getProfileIntegration);
-    notesResource.addMethod('GET', getNoteIntegration);
+    notesResource.addMethod('GET', getNotesIntegration);
     notesResource.addMethod('POST', addNoteIntegration);
     notesResource.addMethod('PUT', editNoteIntegration);
     notesResource.addMethod('DELETE', deleteNoteIntegration);

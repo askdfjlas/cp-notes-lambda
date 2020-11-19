@@ -90,17 +90,22 @@ module.exports.editNote = async function(event) {
   return await addOrEditNote(event, true);
 }
 
-module.exports.getNote = async function(event) {
+module.exports.getNotes = async function(event) {
   const username = event.queryStringParameters.username;
   const platform = event.queryStringParameters.platform;
   const problemId = event.queryStringParameters.problemId;
   const tokenString = event.headers['Authorization'];
 
   try {
-    const noteInfo = await noteModule.getNote(
-      username, platform, problemId, tokenString
-    );
-    return proxyResponse(noteInfo);
+    if(problemId) {
+      const noteInfo = await noteModule.getNoteInfo(
+        username, platform, problemId, tokenString
+      );
+      return proxyResponse(noteInfo);
+    }
+
+    const notes = await noteModule.getNotes(username);
+    return proxyResponse(notes);
   }
   catch(err) {
     return proxyClientError(err);
