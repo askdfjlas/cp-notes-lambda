@@ -9,7 +9,7 @@ const utils = require('./utils');
 async function getNotes(username) {
   const projectedAttributes = [
     'published', 'title', 'platform', 'contestName', 'contestCode', 'problemSk',
-    'problemCode', 'problemName', 'solved'
+    'problemCode', 'problemName', 'solved', 'editedTime'
   ];
 
   return await dynamodb.queryPartitionKey(
@@ -58,11 +58,12 @@ async function addOrEditNote(username, platform, problemId, title, solved,
     content: content,
     published: published,
     platform: platform,
+    problemSk: problemId,
     problemCode: problemInfo.problemCode,
     problemName: problemInfo.problemName,
-    problemSk: problemId,
     contestName: problemInfo.contestName,
-    contestCode: problemInfo.contestCode
+    contestCode: problemInfo.contestCode,
+    editedTime: (new Date()).toJSON()
   };
 
   try {
