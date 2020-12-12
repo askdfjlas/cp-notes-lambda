@@ -28,6 +28,11 @@ export class CpNotesLambdaStack extends cdk.Stack {
       tableName: 'notes'
     });
 
+    const likesTable = new dynamodb.Table(this, 'likes', {
+      partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+      tableName: 'likes'
+    });
+
     // Lambda
     const cognitoPreSignUpLambda = new lambda.Function(this, 'cognitoPreSignUp', {
       runtime: lambda.Runtime.NODEJS_12_X,
@@ -136,15 +141,6 @@ export class CpNotesLambdaStack extends cdk.Stack {
       }
     });
     api.root.addMethod('ANY');
-
-    // APIG authorizer
-    const authorizer = new apigateway.CfnAuthorizer(this, 'cp-notes-auth', {
-      restApiId: api.restApiId,
-      name: 'cp-notes-auth',
-      type: 'COGNITO_USER_POOLS',
-      identitySource: 'method.request.header.Authorization',
-      providerArns: [userPool.userPoolArn]
-    });
 
     // APIG resources
     const problemsResource = api.root.addResource('problems');

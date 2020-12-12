@@ -8,8 +8,8 @@ const utils = require('./utils');
 
 async function getNotes(username) {
   const projectedAttributes = [
-    'published', 'title', 'platform', 'contestName', 'contestCode', 'problemSk',
-    'problemCode', 'problemName', 'solved', 'editedTime'
+    'username', 'published', 'title', 'platform', 'contestName', 'contestCode',
+    'problemSk', 'problemCode', 'problemName', 'solved', 'editedTime'
   ];
 
   return await dynamodb.queryPartitionKey(
@@ -17,7 +17,7 @@ async function getNotes(username) {
   );
 }
 
-async function getNoteInfo(username, platform, problemId, tokenString) {
+async function getNoteInfo(username, platform, problemId, tokenString, forcePublished) {
   const dbProblemId = problemModule.inflateProblemId(problemId);
   const dbNoteId = `${platform}#${dbProblemId}`;
 
@@ -25,7 +25,7 @@ async function getNoteInfo(username, platform, problemId, tokenString) {
     NOTE_TABLE, NOTE_PK, 'sk', username, dbNoteId, null, true
   );
 
-  if(noteRows.length === 0) {
+  if(noteRows.length === 0 || (forcePublished && !noteRows[0].published)) {
     utils.throwCustomError('NoteNotFound', 'Note not found!');
   }
 

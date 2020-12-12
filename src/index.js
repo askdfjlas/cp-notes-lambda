@@ -94,12 +94,13 @@ module.exports.getNotes = async function(event) {
   const username = event.queryStringParameters.username;
   const platform = event.queryStringParameters.platform;
   const problemId = event.queryStringParameters.problemId;
+  const forcePublished = event.queryStringParameters.forcePublished;
   const tokenString = event.headers['Authorization'];
 
   try {
     if(problemId) {
       const noteInfo = await noteModule.getNoteInfo(
-        username, platform, problemId, tokenString
+        username, platform, problemId, tokenString, forcePublished
       );
       return proxyResponse(noteInfo);
     }
