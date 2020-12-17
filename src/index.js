@@ -1,6 +1,7 @@
 const problemModule = require('./problem');
 const contestModule = require('./contest');
 const noteModule = require('./note');
+const likeModule = require('./like');
 const usersModule = require('./Cognito/users');
 
 // Too lazy to deal with CORS :) (should actually set an origin in the future)
@@ -127,4 +128,19 @@ module.exports.deleteNote = async function(event) {
   catch(err) {
     return proxyClientError(err);
   }
+}
+
+module.exports.editNoteLike = async function(event) {
+  const body = JSON.parse(event.body);
+  const username = '' + body.username;
+  const noteAuthor = '' + body.noteAuthor;
+  const platform = '' + body.platform;
+  const problemId = '' + body.problemId;
+  const likedStatus = parseInt(body.likedStatus);
+  const tokenString = event.headers['Authorization'];
+
+  await likeModule.setUserNoteLikedStatus(
+    username, noteAuthor, platform, problemId, likedStatus, tokenString
+  );
+  return proxyResponse('Success!');
 }

@@ -6,6 +6,15 @@ const cognito = require('@aws-cdk/aws-cognito');
 const iam = require('@aws-cdk/aws-iam');
 
 export class CpNotesLambdaStack extends cdk.Stack {
+  createDefaultNodeLambda(name: string) {
+    return new lambda.Function(this, name, {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: `index.${name}`,
+      code: new lambda.AssetCode('src'),
+      timeout: cdk.Duration.seconds(6)
+    });
+  }
+
   constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -30,6 +39,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
 
     const likesTable = new dynamodb.Table(this, 'likes', {
       partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'username', type: dynamodb.AttributeType.STRING },
       tableName: 'likes'
     });
 
@@ -43,62 +53,39 @@ export class CpNotesLambdaStack extends cdk.Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
     );
 
-    const getUserProfileLambda = new lambda.Function(this, 'getUserProfile', {
-      runtime: lambda.Runtime.NODEJS_12_X,
-      handler: 'index.getUserProfile',
-      code: new lambda.AssetCode('src'),
-    });
+    const getUserProfileLambda = this.createDefaultNodeLambda('getUserProfile');
     getUserProfileLambda.role.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
     );
 
-    const getProblemsLambda = new lambda.Function(this, 'getProblems', {
-      runtime: lambda.Runtime.NODEJS_12_X,
-      handler: 'index.getProblems',
-      code: new lambda.AssetCode('src'),
-      timeout: cdk.Duration.seconds(6)
-    });
+    const getProblemsLambda = this.createDefaultNodeLambda('getProblems');
     problemsTable.grantReadWriteData(getProblemsLambda);
     contestsTable.grantReadWriteData(getProblemsLambda);
 
-    const getContestsLambda = new lambda.Function(this, 'getContests', {
-      runtime: lambda.Runtime.NODEJS_12_X,
-      handler: 'index.getContests',
-      code: new lambda.AssetCode('src')
-    });
+    const getContestsLambda = this.createDefaultNodeLambda('getContests');
     contestsTable.grantReadWriteData(getContestsLambda);
 
-    const addNoteLambda = new lambda.Function(this, 'addNote', {
-      runtime: lambda.Runtime.NODEJS_12_X,
-      handler: 'index.addNote',
-      code: new lambda.AssetCode('src')
-    });
+    const addNoteLambda = this.createDefaultNodeLambda('addNote');
     notesTable.grantReadWriteData(addNoteLambda);
     problemsTable.grantReadWriteData(addNoteLambda);
     contestsTable.grantReadWriteData(addNoteLambda);
 
-    const getNotesLambda = new lambda.Function(this, 'getNotes', {
-      runtime: lambda.Runtime.NODEJS_12_X,
-      handler: 'index.getNotes',
-      code: new lambda.AssetCode('src')
-    });
+    const getNotesLambda = this.createDefaultNodeLambda('getNotes');
     notesTable.grantReadWriteData(getNotesLambda);
+    likesTable.grantReadWriteData(getNotesLambda);
 
-    const editNoteLambda = new lambda.Function(this, 'editNote', {
-      runtime: lambda.Runtime.NODEJS_12_X,
-      handler: 'index.editNote',
-      code: new lambda.AssetCode('src')
-    });
+    const editNoteLambda = this.createDefaultNodeLambda('editNote');
     notesTable.grantReadWriteData(editNoteLambda);
     problemsTable.grantReadWriteData(editNoteLambda);
     contestsTable.grantReadWriteData(editNoteLambda);
 
-    const deleteNoteLambda = new lambda.Function(this, 'deleteNote', {
-      runtime: lambda.Runtime.NODEJS_12_X,
-      handler: 'index.deleteNote',
-      code: new lambda.AssetCode('src')
-    });
+    const deleteNoteLambda = this.createDefaultNodeLambda('deleteNote');
     notesTable.grantReadWriteData(deleteNoteLambda);
+    likesTable.grantReadWriteData(deleteNoteLambda);
+
+    const editNoteLikeLambda = this.createDefaultNodeLambda('editNoteLike');
+    likesTable.grantReadWriteData(editNoteLikeLambda);
+    notesTable.grantReadWriteData(editNoteLikeLambda);
 
     // Cognito
     const userPool = new cognito.UserPool(this, 'cp-notes-users', {
@@ -147,6 +134,8 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const contestsResource = api.root.addResource('contests');
     const profileResource = api.root.addResource('profile');
     const notesResource = api.root.addResource('notes');
+    const likesResource = api.root.addResource('likes');
+    const noteLikesResource = likesResource.addResource('notes');
 
     // APIG lambda integrations
     const getProblemsIntegration = new apigateway.LambdaIntegration(getProblemsLambda);
@@ -156,6 +145,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const addNoteIntegration = new apigateway.LambdaIntegration(addNoteLambda);
     const editNoteIntegration = new apigateway.LambdaIntegration(editNoteLambda);
     const deleteNoteIntegration = new apigateway.LambdaIntegration(deleteNoteLambda);
+    const editNoteLikeIntegration = new apigateway.LambdaIntegration(editNoteLikeLambda);
 
     // APIG methods
     problemsResource.addMethod('GET', getProblemsIntegration);
@@ -165,5 +155,6 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesResource.addMethod('POST', addNoteIntegration);
     notesResource.addMethod('PUT', editNoteIntegration);
     notesResource.addMethod('DELETE', deleteNoteIntegration);
+    noteLikesResource.addMethod('PUT', editNoteLikeIntegration);
   }
 }

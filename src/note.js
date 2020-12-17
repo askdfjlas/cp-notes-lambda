@@ -2,9 +2,11 @@ const NOTE_TABLE = 'notes';
 const NOTE_PK = 'username';
 
 const problemModule = require('./problem');
+const likeModule = require('./like');
 const dynamodb = require('./Dynamodb/dynamodb');
 const jwt = require('./Cognito/jwt');
 const utils = require('./utils');
+const error400 = require('./error400');
 
 async function getNotes(username) {
   const projectedAttributes = [
@@ -26,12 +28,23 @@ async function getNoteInfo(username, platform, problemId, tokenString, forcePubl
   );
 
   if(noteRows.length === 0 || (forcePublished && !noteRows[0].published)) {
-    utils.throwCustomError('NoteNotFound', 'Note not found!');
+    utils.throwCustomError(error400.NOTE_NOT_FOUND);
   }
 
   let noteRow = noteRows[0];
   if(!noteRow.published) {
     await jwt.verifyUser(username, tokenString);
+  }
+
+  noteRow.likeCount = await likeModule.getNoteLikeCount(username, platform, problemId);
+  try {
+    const requesterUsername = await jwt.verify(tokenString);
+    noteRow.likedStatus = await likeModule.getUserNoteLikedStatus(
+      requesterUsername, username, platform, problemId, tokenString
+    );
+  }
+  catch(err) {
+    // User is not signed in
   }
 
   delete noteRow.sk;
@@ -84,9 +97,26 @@ async function deleteNote(username, platform, problemId, tokenString) {
   await dynamodb.deletePrimaryKey(
     NOTE_TABLE, NOTE_PK, 'sk', username, dbNoteId
   );
+
+  await likeModule.deleteNoteLikes(username, platform, problemId, tokenString);
+}
+
+async function checkExistence(username, platform, problemId, forcePublished) {
+  const dbProblemId = problemModule.inflateProblemId(problemId);
+  const dbNoteId = `${platform}#${dbProblemId}`;
+
+  const rows = await dynamodb.queryPrimaryKey(
+    NOTE_TABLE, NOTE_PK, 'sk', username, dbNoteId, null, true
+  );
+
+  if(forcePublished)
+    return rows.length > 0 && rows[0].published;
+  else
+    return rows.length > 0;
 }
 
 module.exports.getNotes = getNotes;
 module.exports.getNoteInfo = getNoteInfo;
 module.exports.addOrEditNote = addOrEditNote;
 module.exports.deleteNote = deleteNote;
+module.exports.checkExistence = checkExistence;
