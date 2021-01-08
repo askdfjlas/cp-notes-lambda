@@ -29,6 +29,7 @@
     "@aws-cdk/aws-lambda": "^1.63.0",
     "@aws-cdk/core": "1.63.0",
     "aws-sdk": "^2.757.0",
-    "source-map-support": "^0.5.16"
+    "source-map-support": "^0.5.16",
+    "node-notifier": ">=8.01"
   }
 }
