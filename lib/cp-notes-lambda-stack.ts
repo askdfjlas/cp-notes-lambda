@@ -43,15 +43,27 @@ export class CpNotesLambdaStack extends cdk.Stack {
       tableName: 'likes'
     });
 
+    const usersTable = new dynamodb.Table(this, 'users', {
+      partitionKey: { name: 'username', type: dynamodb.AttributeType.STRING },
+      tableName: 'users'
+    });
+
     // Lambda
     const cognitoPreSignUpLambda = new lambda.Function(this, 'cognitoPreSignUp', {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'preSignUp.handler',
-      code: new lambda.AssetCode('src/Cognito'),
+      code: new lambda.AssetCode('src/Cognito')
     });
     cognitoPreSignUpLambda.role.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
     );
+
+    const cognitoPostConfirmationLambda = new lambda.Function(this, 'cognitoPostConfirmation', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: 'Cognito/postConfirmation.handler',
+      code: new lambda.AssetCode('src')
+    });
+    usersTable.grantReadWriteData(cognitoPostConfirmationLambda);
 
     const getUserProfileLambda = this.createDefaultNodeLambda('getUserProfile');
     getUserProfileLambda.role.addManagedPolicy(
@@ -119,6 +131,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     });
 
     userPool.addTrigger(cognito.UserPoolOperation.PRE_SIGN_UP, cognitoPreSignUpLambda);
+    userPool.addTrigger(cognito.UserPoolOperation.POST_CONFIRMATION, cognitoPostConfirmationLambda);
 
     // APIG
     const api = new apigateway.RestApi(this, 'cpNotes', {

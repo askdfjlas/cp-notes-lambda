@@ -7,7 +7,6 @@ module.exports.getProfile = async function(username, tokenString) {
     var requesterUsername = await jwt.verify(tokenString);
   }
   catch(err) {
-    console.log(err.message);
     var requesterUsername = null;
   }
 
