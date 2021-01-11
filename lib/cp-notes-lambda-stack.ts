@@ -82,10 +82,11 @@ export class CpNotesLambdaStack extends cdk.Stack {
     usersTable.grantReadWriteData(cacheUpdateUserListLambda);
     cacheBucket.grantReadWrite(cacheUpdateUserListLambda);
 
-    const getUserProfileLambda = this.createDefaultNodeLambda('getUserProfile');
-    getUserProfileLambda.role.addManagedPolicy(
+    const getUsersLambda = this.createDefaultNodeLambda('getUsers');
+    getUsersLambda.role.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
     );
+    cacheBucket.grantReadWrite(getUsersLambda);
 
     const getProblemsLambda = this.createDefaultNodeLambda('getProblems');
     problemsTable.grantReadWriteData(getProblemsLambda);
@@ -172,7 +173,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     // APIG resources
     const problemsResource = api.root.addResource('problems');
     const contestsResource = api.root.addResource('contests');
-    const profileResource = api.root.addResource('profile');
+    const usersResource = api.root.addResource('users');
     const notesResource = api.root.addResource('notes');
     const likesResource = api.root.addResource('likes');
     const noteLikesResource = likesResource.addResource('notes');
@@ -180,7 +181,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     // APIG lambda integrations
     const getProblemsIntegration = new apigateway.LambdaIntegration(getProblemsLambda);
     const getContestsIntegration = new apigateway.LambdaIntegration(getContestsLambda);
-    const getProfileIntegration = new apigateway.LambdaIntegration(getUserProfileLambda);
+    const getUsersIntegration = new apigateway.LambdaIntegration(getUsersLambda);
     const getNotesIntegration = new apigateway.LambdaIntegration(getNotesLambda);
     const addNoteIntegration = new apigateway.LambdaIntegration(addNoteLambda);
     const editNoteIntegration = new apigateway.LambdaIntegration(editNoteLambda);
@@ -190,7 +191,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     // APIG methods
     problemsResource.addMethod('GET', getProblemsIntegration);
     contestsResource.addMethod('GET', getContestsIntegration);
-    profileResource.addMethod('GET', getProfileIntegration);
+    usersResource.addMethod('GET', getUsersIntegration);
     notesResource.addMethod('GET', getNotesIntegration);
     notesResource.addMethod('POST', addNoteIntegration);
     notesResource.addMethod('PUT', editNoteIntegration);

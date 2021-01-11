@@ -11,4 +11,15 @@ async function writeFile(bucketName, fileName, data) {
   await s3.putObject(params).promise();
 }
 
+async function getFile(bucketName, fileName) {
+  const params = {
+    Bucket: bucketName,
+    Key: fileName
+  };
+
+  const data = await s3.getObject(params).promise();
+  return data.Body.toString();
+}
+
 module.exports.writeFile = writeFile;
+module.exports.getFile = getFile;
