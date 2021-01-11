@@ -40,6 +40,15 @@ async function batchWriteItemPromise(params) {
   });
 }
 
+async function scanPromise(params) {
+  return new Promise((resolve, reject) => {
+    dynamodb.scan(params, (err, data) => {
+      if(err) reject(err);
+      else resolve(data);
+    });
+  });
+}
+
 async function queryPartitionKey(tableName, pk, value, forward,
                                  projectedAttributes, count) {
   const params = {
@@ -158,6 +167,9 @@ async function insertValue(tableName, pk, valueObject, overwrite) {
 
 module.exports.queryPromise = queryPromise;
 module.exports.putItemPromise = putItemPromise;
+module.exports.deleteItemPromise = deleteItemPromise;
+module.exports.batchWriteItemPromise = batchWriteItemPromise;
+module.exports.scanPromise = scanPromise;
 module.exports.queryPartitionKey = queryPartitionKey;
 module.exports.queryPrimaryKey = queryPrimaryKey;
 module.exports.deletePrimaryKey = deletePrimaryKey;

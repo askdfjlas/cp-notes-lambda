@@ -1,9 +1,12 @@
 import * as cdk from '@aws-cdk/core';
 const apigateway = require('@aws-cdk/aws-apigateway');
 const dynamodb = require('@aws-cdk/aws-dynamodb');
+const s3 = require('@aws-cdk/aws-s3');
 const lambda = require('@aws-cdk/aws-lambda');
 const cognito = require('@aws-cdk/aws-cognito');
 const iam = require('@aws-cdk/aws-iam');
+const events = require('@aws-cdk/aws-events');
+const targets = require('@aws-cdk/aws-events-targets');
 
 export class CpNotesLambdaStack extends cdk.Stack {
   createDefaultNodeLambda(name: string) {
@@ -48,6 +51,11 @@ export class CpNotesLambdaStack extends cdk.Stack {
       tableName: 'users'
     });
 
+    // S3
+    const cacheBucket = new s3.Bucket(this, 'cp-notes-cache', {
+      bucketName: 'cp-notes-cache'
+    });
+
     // Lambda
     const cognitoPreSignUpLambda = new lambda.Function(this, 'cognitoPreSignUp', {
       runtime: lambda.Runtime.NODEJS_12_X,
@@ -64,6 +72,15 @@ export class CpNotesLambdaStack extends cdk.Stack {
       code: new lambda.AssetCode('src')
     });
     usersTable.grantReadWriteData(cognitoPostConfirmationLambda);
+
+    const cacheUpdateUserListLambda = new lambda.Function(this, 'cacheUpdateUserList', {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: 'S3/userListUpdater.handler',
+      code: new lambda.AssetCode('src'),
+      timeout: cdk.Duration.seconds(30)
+    });
+    usersTable.grantReadWriteData(cacheUpdateUserListLambda);
+    cacheBucket.grantReadWrite(cacheUpdateUserListLambda);
 
     const getUserProfileLambda = this.createDefaultNodeLambda('getUserProfile');
     getUserProfileLambda.role.addManagedPolicy(
@@ -98,6 +115,16 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const editNoteLikeLambda = this.createDefaultNodeLambda('editNoteLike');
     likesTable.grantReadWriteData(editNoteLikeLambda);
     notesTable.grantReadWriteData(editNoteLikeLambda);
+
+    // Events
+    const cacheUpdateUserListLambdaTarget = new targets.LambdaFunction(
+      cacheUpdateUserListLambda
+    );
+
+    new events.Rule(this, 'ScheduleRule', {
+      schedule: events.Schedule.rate(cdk.Duration.minutes(70)),
+      targets: [ cacheUpdateUserListLambdaTarget ]
+    });
 
     // Cognito
     const userPool = new cognito.UserPool(this, 'cp-notes-users', {
