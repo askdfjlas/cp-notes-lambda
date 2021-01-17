@@ -99,6 +99,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesTable.grantReadWriteData(addNoteLambda);
     problemsTable.grantReadWriteData(addNoteLambda);
     contestsTable.grantReadWriteData(addNoteLambda);
+    likesTable.grantReadWriteData(addNoteLambda);
 
     const getNotesLambda = this.createDefaultNodeLambda('getNotes');
     notesTable.grantReadWriteData(getNotesLambda);
@@ -108,6 +109,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesTable.grantReadWriteData(editNoteLambda);
     problemsTable.grantReadWriteData(editNoteLambda);
     contestsTable.grantReadWriteData(editNoteLambda);
+    likesTable.grantReadWriteData(editNoteLambda);
 
     const deleteNoteLambda = this.createDefaultNodeLambda('deleteNote');
     notesTable.grantReadWriteData(deleteNoteLambda);

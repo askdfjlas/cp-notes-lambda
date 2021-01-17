@@ -9,12 +9,26 @@ const jwt = require('./Cognito/jwt');
 const utils = require('./utils');
 const error400 = require('./error400');
 
-function getLikeDislikeId(noteAuthor, platform, problemId) {
+function getNoteLikeTotalIds(noteAuthor, platform, problemId) {
   const dbProblemId = problemModule.inflateProblemId(problemId);
   const dbLikeId = `NOTE#${noteAuthor}#${platform}#${dbProblemId}#LIKE`;
-  const dbDislikeId = `NOTE#${noteAuthor}#${platform}#${dbProblemId}#DISLIKE`;
+  const dbTotalId = `NOTE#${noteAuthor}#${platform}#${dbProblemId}#TOTAL`;
 
-  return [ dbLikeId, dbDislikeId ];
+  return [ dbLikeId, dbTotalId ];
+}
+
+async function initializeNoteLikeCount(noteAuthor, platform, problemId) {
+  const [ dbLikeId, dbTotalId ] = getNoteLikeTotalIds(
+    noteAuthor, platform, problemId
+  );
+
+  const likeCountObject = {
+    [ LIKE_PK ]: dbTotalId,
+    [ LIKE_SK ]: '!',
+    totalCount: 0
+  };
+
+  await dynamodb.insertValue(LIKE_TABLE, LIKE_PK, likeCountObject, false);
 }
 
 async function setUserNoteLikedStatus(username, noteAuthor, platform, problemId,
@@ -28,72 +42,80 @@ async function setUserNoteLikedStatus(username, noteAuthor, platform, problemId,
     utils.throwCustomError(error400.NOTE_NOT_FOUND);
   }
 
-  const [ dbLikeId, dbDislikeId ] = getLikeDislikeId(noteAuthor, platform, problemId);
+  const [ dbLikeId, dbTotalId ] = getNoteLikeTotalIds(
+    noteAuthor, platform, problemId
+  );
   const currentTime = (new Date()).toJSON();
 
+  let noteLikeDelta = 0;
   if(likedStatus === 0) {
-    await dynamodb.deletePrimaryKey(LIKE_TABLE, LIKE_PK, LIKE_SK, dbLikeId, username);
-    await dynamodb.deletePrimaryKey(LIKE_TABLE, LIKE_PK, LIKE_SK, dbDislikeId, username);
+    const oldLikeItem = await dynamodb.deletePrimaryKey(
+      LIKE_TABLE, LIKE_PK, LIKE_SK, dbLikeId, username
+    );
+    if(oldLikeItem) {
+      noteLikeDelta--;
+    }
   }
-  else if(likedStatus === 1) {
+  else {
     const likeObject = {
       [ LIKE_PK ]: dbLikeId,
       [ LIKE_SK ]: username,
       editedTime: currentTime
     };
 
-    await dynamodb.insertValue(LIKE_TABLE, LIKE_PK, likeObject, true);
-    await dynamodb.deletePrimaryKey(LIKE_TABLE, LIKE_PK, LIKE_SK, dbDislikeId, username);
+    const itemInserted = await dynamodb.insertValue(
+      LIKE_TABLE, LIKE_PK, likeObject, false
+    );
+    if(itemInserted) {
+      noteLikeDelta++;
+    }
   }
-  else {
-    const dislikeObject = {
-      [ LIKE_PK ]: dbDislikeId,
-      [ LIKE_SK ]: username,
-      editedTime: currentTime
-    };
 
-    await dynamodb.insertValue(LIKE_TABLE, LIKE_PK, dislikeObject, true);
-    await dynamodb.deletePrimaryKey(LIKE_TABLE, LIKE_PK, LIKE_SK, dbLikeId, username);
-  }
+  const totalLikeKey = {
+    [ LIKE_PK ]: dbTotalId,
+    [ LIKE_SK ]: '!'
+  };
+  await dynamodb.updateValue(LIKE_TABLE, totalLikeKey, {
+    totalCount: noteLikeDelta
+  });
 }
 
 async function getUserNoteLikedStatus(username, noteAuthor, platform, problemId, tokenString) {
   await jwt.verifyUser(username, tokenString);
 
-  const [ dbLikeId, dbDislikeId ] = getLikeDislikeId(noteAuthor, platform, problemId);
+  const [ dbLikeId, dbTotalId ] = getNoteLikeTotalIds(
+    noteAuthor, platform, problemId
+  );
 
   const likedRows = await dynamodb.queryPrimaryKey(
     LIKE_TABLE, LIKE_PK, LIKE_SK, dbLikeId, username, null, true
   );
 
-  const dislikedRows = await dynamodb.queryPrimaryKey(
-    LIKE_TABLE, LIKE_PK, LIKE_SK, dbDislikeId, username, null, true
-  );
-
-  return likedRows.length - dislikedRows.length;
+  return likedRows.length;
 }
 
 async function getNoteLikeCount(noteAuthor, platform, problemId) {
-  const [ dbLikeId, dbDislikeId ] = getLikeDislikeId(noteAuthor, platform, problemId);
-
-  const likeCount = await dynamodb.queryPartitionKey(
-    LIKE_TABLE, LIKE_PK, dbLikeId, true, null, true
+  const [ dbLikeId, dbTotalId ] = getNoteLikeTotalIds(
+    noteAuthor, platform, problemId
   );
 
-  const dislikeCount = await dynamodb.queryPartitionKey(
-    LIKE_TABLE, LIKE_PK, dbDislikeId, true, null, true
+  const totalRows = await dynamodb.queryPrimaryKey(
+    LIKE_TABLE, LIKE_PK, LIKE_SK, dbTotalId, '!', null, true
   );
 
-  return likeCount - dislikeCount;
+  return totalRows[0].totalCount;
 }
 
-async function deleteNoteLikes(noteAuthor, platform, problemId, tokenString) {
-  const [ dbLikeId, dbDislikeId ] = getLikeDislikeId(noteAuthor, platform, problemId);
+async function deleteNoteLikes(noteAuthor, platform, problemId) {
+  const [ dbLikeId, dbTotalId ] = getNoteLikeTotalIds(
+    noteAuthor, platform, problemId
+  );
 
+  await dynamodb.deletePrimaryKey(LIKE_TABLE, LIKE_PK, LIKE_SK, dbTotalId, '!');
   await dynamodb.deletePartitionKey(LIKE_TABLE, LIKE_PK, LIKE_SK, dbLikeId);
-  await dynamodb.deletePartitionKey(LIKE_TABLE, LIKE_PK, LIKE_SK, dbDislikeId);
 }
 
+module.exports.initializeNoteLikeCount = initializeNoteLikeCount;
 module.exports.setUserNoteLikedStatus = setUserNoteLikedStatus;
 module.exports.getUserNoteLikedStatus = getUserNoteLikedStatus;
 module.exports.getNoteLikeCount = getNoteLikeCount;

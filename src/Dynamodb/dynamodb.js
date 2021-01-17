@@ -115,10 +115,16 @@ async function deletePrimaryKey(tableName, pk, sk, pkValue, skValue) {
     Key: {
       [ pk ]: { S: pkValue },
       [ sk ]: { S: skValue }
-    }
+    },
+    ReturnValues: 'ALL_OLD'
   };
 
-  await deleteItemPromise(params);
+  const potentialOldItem = await deleteItemPromise(params);
+  if(!('Attributes' in potentialOldItem)) {
+    return null;
+  }
+
+  return dynamodbUtils.filterRow(potentialOldItem.Attributes);
 }
 
 async function deletePartitionKey(tableName, pk, sk, pkValue) {
@@ -162,7 +168,32 @@ async function insertValue(tableName, pk, valueObject, overwrite) {
     params.ConditionExpression = `attribute_not_exists(${pk})`;
   }
 
-  return await putItemPromise(params);
+  try {
+    await putItemPromise(params);
+    return true;
+  }
+  catch(err) {
+    if(err.name !== 'ConditionalCheckFailedException') {
+      throw err;
+    }
+    return false;
+  }
+}
+
+async function updateValue(tableName, itemKey, additionUpdates) {
+  const [ updateExpression, expressionAttributeValues ] =
+    dynamodbUtils.generateUpdateExpression(additionUpdates);
+
+  const params = {
+    TableName: tableName,
+    Key: dynamodbUtils.createItemFromObject(itemKey),
+    UpdateExpression: updateExpression,
+    ExpressionAttributeValues: expressionAttributeValues,
+    ReturnValues: 'ALL_OLD'
+  };
+
+  const oldItem = await dynamodb.updateItem(params).promise();
+  return dynamodbUtils.filterRow(oldItem.Attributes);
 }
 
 module.exports.queryPromise = queryPromise;
@@ -175,3 +206,4 @@ module.exports.queryPrimaryKey = queryPrimaryKey;
 module.exports.deletePrimaryKey = deletePrimaryKey;
 module.exports.deletePartitionKey = deletePartitionKey;
 module.exports.insertValue = insertValue;
+module.exports.updateValue = updateValue;

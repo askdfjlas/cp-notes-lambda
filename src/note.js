@@ -79,13 +79,11 @@ async function addOrEditNote(username, platform, problemId, title, solved,
     editedTime: (new Date()).toJSON()
   };
 
-  try {
-    return await dynamodb.insertValue(NOTE_TABLE, NOTE_PK, noteObject, overwrite);
+  if(!overwrite) {
+    await likeModule.initializeNoteLikeCount(username, platform, problemId);
   }
-  catch(err) {
-    if(err.name !== 'ConditionalCheckFailedException')
-      throw err;
-  }
+
+  await dynamodb.insertValue(NOTE_TABLE, NOTE_PK, noteObject, overwrite);
 }
 
 async function deleteNote(username, platform, problemId, tokenString) {
@@ -98,7 +96,7 @@ async function deleteNote(username, platform, problemId, tokenString) {
     NOTE_TABLE, NOTE_PK, 'sk', username, dbNoteId
   );
 
-  await likeModule.deleteNoteLikes(username, platform, problemId, tokenString);
+  await likeModule.deleteNoteLikes(username, platform, problemId);
 }
 
 async function checkExistence(username, platform, problemId, forcePublished) {

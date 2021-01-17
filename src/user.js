@@ -30,7 +30,8 @@ async function getProfile(username, tokenString) {
 
 async function getUsers(page) {
   const userFile = `${cacheConstants.USER_FILE_PREFIX}${page}.json`;
-  return await s3.getFile(cacheConstants.CACHE_NAME, userFile);
+  const fileContent = await s3.getFile(cacheConstants.CACHE_NAME, userFile);
+  return JSON.parse(fileContent);
 }
 
 module.exports.getProfile = getProfile;

@@ -8,17 +8,19 @@ function filterType(data) {
   return Number(data.N);
 }
 
+function filterRow(row) {
+  let filteredRow = {};
+  for(const property in row) {
+    filteredRow[property] = filterType(row[property]);
+  }
+  return filteredRow;
+}
+
 function filterRows(rows) {
   var filteredRows = [];
-
   for(const row of rows.Items) {
-    var filteredRow = {};
-    for(const property in row) {
-      filteredRow[property] = filterType(row[property]);
-    }
-    filteredRows.push(filteredRow);
+    filteredRows.push(filterRow(row));
   }
-
   return filteredRows;
 }
 
@@ -80,9 +82,30 @@ function createItemFromObject(valueObject) {
   return item;
 }
 
+function generateUpdateExpression(additionUpdates) {
+  let additionUpdateFragments = [];
+  let expressionAttributeValues = {};
+
+  for(const attribute in additionUpdates) {
+    const oldAttribute = attribute;
+    if(attribute in USED_DDB_KEYWORDS) {
+      attribute = attribute + 'Replacement';
+    }
+    additionUpdateFragments.push(`${oldAttribute} :${attribute}`);
+
+    const increment = additionUpdates[attribute];
+    expressionAttributeValues[`:${attribute}`] = { N: '' + increment };
+  }
+
+  const updateExpression = 'ADD ' + additionUpdateFragments.join(',');
+  return [ updateExpression, expressionAttributeValues ];
+}
+
 module.exports.filterType = filterType;
+module.exports.filterRow = filterRow;
 module.exports.filterRows = filterRows;
 module.exports.filterProjectedAttributes = filterProjectedAttributes;
 module.exports.removePrefixZeroes = removePrefixZeroes;
 module.exports.inflatePrefixZeroes = inflatePrefixZeroes;
 module.exports.createItemFromObject = createItemFromObject;
+module.exports.generateUpdateExpression = generateUpdateExpression;
