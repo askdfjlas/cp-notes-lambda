@@ -79,10 +79,7 @@ async function addOrEditNote(username, platform, problemId, title, solved,
     editedTime: (new Date()).toJSON()
   };
 
-  if(!overwrite) {
-    await likeModule.initializeNoteLikeCount(username, platform, problemId);
-  }
-
+  await likeModule.initializeNoteLikeCount(username, platform, problemId);
   await dynamodb.insertValue(NOTE_TABLE, NOTE_PK, noteObject, overwrite);
 }
 

@@ -1,8 +1,11 @@
 const s3 = require('./S3/s3');
+const dynamodb = require('./Dynamodb/dynamodb');
 const cacheConstants = require('./S3/cacheConstants');
 const jwt = require('./Cognito/jwt');
 const userPool = require('./Cognito/userPool');
 const utils = require('./utils');
+
+const USER_TABLE = 'users';
 
 async function getProfile(username, tokenString) {
   try {
@@ -34,5 +37,16 @@ async function getUsers(page) {
   return JSON.parse(fileContent);
 }
 
+async function updateContribution(username, increment) {
+  const userKey = {
+    username: username
+  };
+
+  await dynamodb.updateValue(USER_TABLE, userKey, {
+    contribution: increment
+  });
+}
+
 module.exports.getProfile = getProfile;
 module.exports.getUsers = getUsers;
+module.exports.updateContribution = updateContribution;

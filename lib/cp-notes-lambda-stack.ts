@@ -114,10 +114,12 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const deleteNoteLambda = this.createDefaultNodeLambda('deleteNote');
     notesTable.grantReadWriteData(deleteNoteLambda);
     likesTable.grantReadWriteData(deleteNoteLambda);
+    usersTable.grantReadWriteData(deleteNoteLambda);
 
     const editNoteLikeLambda = this.createDefaultNodeLambda('editNoteLike');
     likesTable.grantReadWriteData(editNoteLikeLambda);
     notesTable.grantReadWriteData(editNoteLikeLambda);
+    usersTable.grantReadWriteData(editNoteLikeLambda);
 
     // Events
     const cacheUpdateUserListLambdaTarget = new targets.LambdaFunction(

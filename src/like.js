@@ -4,6 +4,7 @@ const LIKE_SK = 'username';
 
 const problemModule = require('./problem');
 const noteModule = require('./note');
+const userModule = require('./user');
 const dynamodb = require('./Dynamodb/dynamodb');
 const jwt = require('./Cognito/jwt');
 const utils = require('./utils');
@@ -75,9 +76,14 @@ async function setUserNoteLikedStatus(username, noteAuthor, platform, problemId,
     [ LIKE_PK ]: dbTotalId,
     [ LIKE_SK ]: '!'
   };
-  await dynamodb.updateValue(LIKE_TABLE, totalLikeKey, {
+  const oldTotalLikeObject = await dynamodb.updateValue(LIKE_TABLE, totalLikeKey, {
     totalCount: noteLikeDelta
   });
+
+  const oldLikeCount = oldTotalLikeObject.totalCount;
+  const newLikeCount = oldLikeCount + noteLikeDelta;
+  const authorContributionDelta = Math.pow(newLikeCount, 3) - Math.pow(oldLikeCount, 3);
+  await userModule.updateContribution(noteAuthor, authorContributionDelta);
 }
 
 async function getUserNoteLikedStatus(username, noteAuthor, platform, problemId, tokenString) {
@@ -111,8 +117,15 @@ async function deleteNoteLikes(noteAuthor, platform, problemId) {
     noteAuthor, platform, problemId
   );
 
-  await dynamodb.deletePrimaryKey(LIKE_TABLE, LIKE_PK, LIKE_SK, dbTotalId, '!');
   await dynamodb.deletePartitionKey(LIKE_TABLE, LIKE_PK, LIKE_SK, dbLikeId);
+  const oldTotalLikeObject = await dynamodb.deletePrimaryKey(
+    LIKE_TABLE, LIKE_PK, LIKE_SK, dbTotalId, '!'
+  );
+
+  if(oldTotalLikeObject) {
+    const oldContribution = Math.pow(oldTotalLikeObject.totalCount, 3);
+    await userModule.updateContribution(noteAuthor, -oldContribution);
+  }
 }
 
 module.exports.initializeNoteLikeCount = initializeNoteLikeCount;
