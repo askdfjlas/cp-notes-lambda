@@ -3,6 +3,7 @@ const contestModule = require('./contest');
 const noteModule = require('./note');
 const likeModule = require('./like');
 const userModule = require('./user');
+const userPoolModule = require('./Cognito/userPool');
 
 // Too lazy to deal with CORS :) (should actually set an origin in the future)
 const CORS_HEADERS = {
@@ -55,6 +56,7 @@ module.exports.getContests = async function(event) {
 
 module.exports.getUsers = async function(event) {
   const username = event.queryStringParameters.username;
+  const searchTerm = event.queryStringParameters.searchTerm;
   const page = event.queryStringParameters.page || 1;
   const tokenString = event.headers['Authorization'];
 
@@ -62,6 +64,10 @@ module.exports.getUsers = async function(event) {
     if(username) {
       const profile = await userModule.getProfile(username, tokenString);
       return proxyResponse(profile);
+    }
+    else if(searchTerm) {
+      const usernames = await userPoolModule.searchUsers(searchTerm);
+      return proxyResponse(usernames);
     }
     else {
       const users = await userModule.getUsers(page);
