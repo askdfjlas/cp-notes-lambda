@@ -86,6 +86,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     getUsersLambda.role.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
     );
+    usersTable.grantReadWriteData(getUsersLambda);
     cacheBucket.grantReadWrite(getUsersLambda);
 
     const getProblemsLambda = this.createDefaultNodeLambda('getProblems');
