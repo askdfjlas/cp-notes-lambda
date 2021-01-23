@@ -180,9 +180,9 @@ async function insertValue(tableName, pk, valueObject, overwrite) {
   }
 }
 
-async function updateValue(tableName, itemKey, additionUpdates) {
+async function updateValue(tableName, itemKey, additionUpdates, setUpdates) {
   const [ updateExpression, expressionAttributeValues ] =
-    dynamodbUtils.generateUpdateExpression(additionUpdates);
+    dynamodbUtils.generateUpdateExpression(additionUpdates, setUpdates);
 
   const params = {
     TableName: tableName,

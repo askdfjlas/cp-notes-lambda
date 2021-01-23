@@ -89,6 +89,10 @@ export class CpNotesLambdaStack extends cdk.Stack {
     usersTable.grantReadWriteData(getUsersLambda);
     cacheBucket.grantReadWrite(getUsersLambda);
 
+    const updateUserProfileLambda = this.createDefaultNodeLambda('updateUserProfile');
+    usersTable.grantReadWriteData(updateUserProfileLambda);
+    cacheBucket.grantReadWrite(updateUserProfileLambda);
+
     const getProblemsLambda = this.createDefaultNodeLambda('getProblems');
     problemsTable.grantReadWriteData(getProblemsLambda);
     contestsTable.grantReadWriteData(getProblemsLambda);
@@ -187,6 +191,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const getProblemsIntegration = new apigateway.LambdaIntegration(getProblemsLambda);
     const getContestsIntegration = new apigateway.LambdaIntegration(getContestsLambda);
     const getUsersIntegration = new apigateway.LambdaIntegration(getUsersLambda);
+    const updateUserProfileIntegration = new apigateway.LambdaIntegration(updateUserProfileLambda);
     const getNotesIntegration = new apigateway.LambdaIntegration(getNotesLambda);
     const addNoteIntegration = new apigateway.LambdaIntegration(addNoteLambda);
     const editNoteIntegration = new apigateway.LambdaIntegration(editNoteLambda);
@@ -197,6 +202,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     problemsResource.addMethod('GET', getProblemsIntegration);
     contestsResource.addMethod('GET', getContestsIntegration);
     usersResource.addMethod('GET', getUsersIntegration);
+    usersResource.addMethod('PUT', updateUserProfileIntegration);
     notesResource.addMethod('GET', getNotesIntegration);
     notesResource.addMethod('POST', addNoteIntegration);
     notesResource.addMethod('PUT', editNoteIntegration);

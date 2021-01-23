@@ -63,42 +63,67 @@ function inflatePrefixZeroes(inputString, totalLength) {
   return ('0'.repeat(totalLength - inputString.length)) + inputString;
 }
 
+function createDynamodbObjectFromValue(value) {
+  if((typeof value) === 'string') {
+    return { S: value };
+  }
+  else if((typeof value) === 'boolean') {
+    return { BOOL: value };
+  }
+  else {
+    return { N: '' + value };
+  }
+}
+
 function createItemFromObject(valueObject) {
   let item = {};
-
   for(const property in valueObject) {
     const value = valueObject[property];
-    if((typeof value) === 'string') {
-      item[property] = { S: value };
-    }
-    else if((typeof value) === 'boolean') {
-      item[property] = { BOOL: value };
-    }
-    else {
-      item[property] = { N: '' + value };
-    }
+    item[property] = createDynamodbObjectFromValue(value);
   }
-
   return item;
 }
 
-function generateUpdateExpression(additionUpdates) {
+function replaceAttributeValue(attribute) {
+  if(attribute in USED_DDB_KEYWORDS) {
+    return attribute + 'Replacement';
+  }
+  return attribute;
+}
+
+function generateUpdateExpression(additionUpdates={}, setUpdates={}) {
   let additionUpdateFragments = [];
+  let setUpdateFragments = [];
   let expressionAttributeValues = {};
 
-  for(const attribute in additionUpdates) {
+  for(let attribute in additionUpdates) {
     const oldAttribute = attribute;
-    if(attribute in USED_DDB_KEYWORDS) {
-      attribute = attribute + 'Replacement';
-    }
+    attribute = replaceAttributeValue(attribute);
     additionUpdateFragments.push(`${oldAttribute} :${attribute}`);
 
     const increment = additionUpdates[attribute];
     expressionAttributeValues[`:${attribute}`] = { N: '' + increment };
   }
 
-  const updateExpression = 'ADD ' + additionUpdateFragments.join(',');
-  return [ updateExpression, expressionAttributeValues ];
+  for(let attribute in setUpdates) {
+    const oldAttribute = attribute;
+    attribute = replaceAttributeValue(attribute);
+    setUpdateFragments.push(`${oldAttribute} = :${attribute}`);
+
+    expressionAttributeValues[`:${attribute}`] = createDynamodbObjectFromValue(
+      setUpdates[attribute]
+    );
+  }
+
+  let updateExpressions = [];
+  if(additionUpdateFragments.length > 0) {
+    updateExpressions.push('ADD ' + additionUpdateFragments.join(','));
+  }
+  if(setUpdateFragments.length > 0) {
+    updateExpressions.push('SET ' + setUpdateFragments.join(','));
+  }
+
+  return [ updateExpressions.join(' '), expressionAttributeValues ];
 }
 
 module.exports.filterType = filterType;

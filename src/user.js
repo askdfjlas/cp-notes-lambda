@@ -3,6 +3,7 @@ const dynamodb = require('./Dynamodb/dynamodb');
 const cacheConstants = require('./S3/cacheConstants');
 const jwt = require('./Cognito/jwt');
 const userPool = require('./Cognito/userPool');
+const error400 = require('./error400');
 const utils = require('./utils');
 
 const USER_TABLE = 'users';
@@ -20,7 +21,7 @@ async function getProfile(username, tokenString) {
 
   const tableData = await dynamodb.queryPartitionKey(USER_TABLE, USER_PK, username);
   if(tableData.length === 0) {
-    utils.throwCustomError('UserNotFound', 'User not found!');
+    utils.throwCustomError(error400.USER_NOT_FOUND);
   }
   const userTableRow = tableData[0];
 
@@ -35,7 +36,7 @@ async function getProfile(username, tokenString) {
 
   if(userTableRow.avatarExtension) {
     [ userProfile.avatarData, userProfile.avatarExtension ] = await getUserAvatar(
-      username, avatarExtension
+      username, userTableRow.avatarExtension
     );
   }
   else {
@@ -62,14 +63,35 @@ async function getUserAvatar(username, extension) {
 }
 
 async function updateUserAvatar(username, avatarData, extension) {
+  if(extension !== 'png' && extension !== 'jpg') {
+    utils.throwCustomError(error400.BAD_FILE_TYPE);
+  }
+
+  const userKey = {
+    [ USER_PK ]: username
+  };
+
+  await dynamodb.updateValue(USER_TABLE, userKey, null, {
+    avatarExtension: extension
+  });
+
   const avatarFilename = `${AVATAR_PREFIX}${username}.${extension}`;
+  avatarData = Buffer.from(avatarData, 'base64');
+
   await s3.writeFile(cacheConstants.CACHE_NAME, avatarFilename, avatarData,
     'base64', `image/${extension}`);
 }
 
+async function updateProfile(username, avatarData, extension, tokenString) {
+  await jwt.verifyUser(username, tokenString);
+  if(avatarData) {
+    await updateUserAvatar(username, avatarData, extension);
+  }
+}
+
 async function updateContribution(username, increment) {
   const userKey = {
-    username: username
+    [ USER_PK ]: username
   };
 
   await dynamodb.updateValue(USER_TABLE, userKey, {
@@ -80,5 +102,6 @@ async function updateContribution(username, increment) {
 module.exports.getProfile = getProfile;
 module.exports.getUsers = getUsers;
 module.exports.getUserAvatar = getUserAvatar;
+module.exports.updateProfile = updateProfile;
 module.exports.updateUserAvatar = updateUserAvatar;
 module.exports.updateContribution = updateContribution;
