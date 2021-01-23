@@ -3,6 +3,7 @@ const NOTE_PK = 'username';
 
 const problemModule = require('./problem');
 const likeModule = require('./like');
+const userModule = require('./user');
 const dynamodb = require('./Dynamodb/dynamodb');
 const jwt = require('./Cognito/jwt');
 const utils = require('./utils');
@@ -36,7 +37,6 @@ async function getNoteInfo(username, platform, problemId, tokenString, forcePubl
     await jwt.verifyUser(username, tokenString);
   }
 
-  noteRow.likeCount = await likeModule.getNoteLikeCount(username, platform, problemId);
   try {
     const requesterUsername = await jwt.verify(tokenString);
     noteRow.likedStatus = await likeModule.getUserNoteLikedStatus(
@@ -63,24 +63,76 @@ async function addOrEditNote(username, platform, problemId, title, solved,
   }
 
   const dbNoteId = `${platform}#${dbProblemId}`;
-  const noteObject = {
-    [ NOTE_PK ]: username,
-    sk: dbNoteId,
+  const noteDynamicAttributes = {
     title: title,
     solved: solved,
     content: content,
     published: published,
+    editedTime: (new Date()).toJSON()
+  };
+
+  const noteFixedAttributes = {
+    [ NOTE_PK ]: username,
+    sk: dbNoteId,
     platform: platform,
     problemSk: problemId,
     problemCode: problemInfo.problemCode,
     problemName: problemInfo.problemName,
     contestName: problemInfo.contestName,
     contestCode: problemInfo.contestCode,
-    editedTime: (new Date()).toJSON()
+    likeCount: 0
+  }
+
+  if(overwrite) {
+    const itemKey = {
+      [ NOTE_PK ]: username,
+      sk: dbNoteId
+    };
+
+    const oldItem = await dynamodb.updateValue(
+      NOTE_TABLE, itemKey, null, noteDynamicAttributes
+    );
+
+    if(!oldItem) {
+      delete noteFixedAttributes[NOTE_PK];
+      delete noteFixedAttributes.sk;
+      await dynamodb.updateValue(
+        NOTE_TABLE, itemKey, null, noteFixedAttributes
+      );
+    }
+  }
+  else {
+    const noteObject = {
+      ...noteDynamicAttributes,
+      ...noteFixedAttributes
+    };
+
+    await dynamodb.insertValue(NOTE_TABLE, NOTE_PK, noteObject, false);
+  }
+}
+
+async function updateNoteLikeCount(noteAuthor, platform, problemId, increment) {
+  const dbProblemId = problemModule.inflateProblemId(problemId);
+  const dbNoteId = `${platform}#${dbProblemId}`;
+
+  const noteKey = {
+    [ NOTE_PK ]: noteAuthor,
+    sk: dbNoteId
   };
 
-  await likeModule.initializeNoteLikeCount(username, platform, problemId);
-  await dynamodb.insertValue(NOTE_TABLE, NOTE_PK, noteObject, overwrite);
+  const oldNoteObject = await dynamodb.updateValue(NOTE_TABLE, noteKey, {
+    likeCount: increment
+  }, null, true);
+
+  if(!oldNoteObject) {
+    return false;
+  }
+
+  const oldLikeCount = oldNoteObject.likeCount;
+  const newLikeCount = oldLikeCount + increment;
+  const authorContributionDelta = Math.pow(newLikeCount, 3) - Math.pow(oldLikeCount, 3);
+  await userModule.updateContribution(noteAuthor, authorContributionDelta);
+  return true;
 }
 
 async function deleteNote(username, platform, problemId, tokenString) {
@@ -89,9 +141,14 @@ async function deleteNote(username, platform, problemId, tokenString) {
   const dbProblemId = problemModule.inflateProblemId(problemId);
   const dbNoteId = `${platform}#${dbProblemId}`;
 
-  await dynamodb.deletePrimaryKey(
+  const oldNoteObject = await dynamodb.deletePrimaryKey(
     NOTE_TABLE, NOTE_PK, 'sk', username, dbNoteId
   );
+
+  if(oldNoteObject) {
+    const oldAuthorContribution = Math.pow(oldNoteObject.likeCount, 3);
+    await userModule.updateContribution(username, -oldAuthorContribution);
+  }
 
   await likeModule.deleteNoteLikes(username, platform, problemId);
 }
@@ -113,5 +170,6 @@ async function checkExistence(username, platform, problemId, forcePublished) {
 module.exports.getNotes = getNotes;
 module.exports.getNoteInfo = getNoteInfo;
 module.exports.addOrEditNote = addOrEditNote;
+module.exports.updateNoteLikeCount = updateNoteLikeCount;
 module.exports.deleteNote = deleteNote;
 module.exports.checkExistence = checkExistence;

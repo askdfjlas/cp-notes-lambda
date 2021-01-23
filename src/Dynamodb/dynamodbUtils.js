@@ -85,7 +85,7 @@ function createItemFromObject(valueObject) {
 }
 
 function replaceAttributeValue(attribute) {
-  if(attribute in USED_DDB_KEYWORDS) {
+  if(USED_DDB_KEYWORDS.includes(attribute)) {
     return attribute + 'Replacement';
   }
   return attribute;
@@ -101,7 +101,7 @@ function generateUpdateExpression(additionUpdates={}, setUpdates={}) {
     attribute = replaceAttributeValue(attribute);
     additionUpdateFragments.push(`${oldAttribute} :${attribute}`);
 
-    const increment = additionUpdates[attribute];
+    const increment = additionUpdates[oldAttribute];
     expressionAttributeValues[`:${attribute}`] = { N: '' + increment };
   }
 

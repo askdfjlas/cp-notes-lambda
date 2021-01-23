@@ -180,7 +180,8 @@ async function insertValue(tableName, pk, valueObject, overwrite) {
   }
 }
 
-async function updateValue(tableName, itemKey, additionUpdates, setUpdates) {
+async function updateValue(tableName, itemKey, additionUpdates, setUpdates,
+                           forceExistence=false) {
   const [ updateExpression, expressionAttributeValues ] =
     dynamodbUtils.generateUpdateExpression(additionUpdates, setUpdates);
 
@@ -192,8 +193,24 @@ async function updateValue(tableName, itemKey, additionUpdates, setUpdates) {
     ReturnValues: 'ALL_OLD'
   };
 
-  const oldItem = await dynamodb.updateItem(params).promise();
-  return dynamodbUtils.filterRow(oldItem.Attributes);
+  if(forceExistence) {
+    const arbitraryKey = Object.keys(itemKey)[0];
+    params.ConditionExpression = `attribute_exists(${arbitraryKey})`;
+  }
+
+  try {
+    const oldItem = await dynamodb.updateItem(params).promise();
+    if(!('Attributes' in oldItem)) {
+      return null;
+    }
+    return dynamodbUtils.filterRow(oldItem.Attributes);
+  }
+  catch(err) {
+    if(err.name === 'ConditionalCheckFailedException' && forceExistence) {
+      return false;
+    }
+    throw err;
+  }
 }
 
 module.exports.queryPromise = queryPromise;
