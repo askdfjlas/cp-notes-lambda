@@ -77,7 +77,7 @@ async function updateUserAvatar(username, avatarData, extension) {
 
   const avatarFilename = `${AVATAR_PREFIX}${username}.${extension}`;
   avatarData = Buffer.from(avatarData, 'base64');
-  
+
   await s3.writeFile(cacheConstants.CACHE_NAME, avatarFilename, avatarData,
     'base64', `image/${extension}`);
 }

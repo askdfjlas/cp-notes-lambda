@@ -51,6 +51,12 @@ export class CpNotesLambdaStack extends cdk.Stack {
       tableName: 'users'
     });
 
+    const countsTable = new dynamodb.Table(this, 'counts', {
+      partitionKey: { name: 'countType', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
+      tableName: 'counts'
+    });
+
     // S3
     const cacheBucket = new s3.Bucket(this, 'cp-notes-cache', {
       bucketName: 'cp-notes-cache'
@@ -105,6 +111,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     problemsTable.grantReadWriteData(addNoteLambda);
     contestsTable.grantReadWriteData(addNoteLambda);
     likesTable.grantReadWriteData(addNoteLambda);
+    countsTable.grantReadWriteData(addNoteLambda);
 
     const getNotesLambda = this.createDefaultNodeLambda('getNotes');
     notesTable.grantReadWriteData(getNotesLambda);
@@ -115,11 +122,13 @@ export class CpNotesLambdaStack extends cdk.Stack {
     problemsTable.grantReadWriteData(editNoteLambda);
     contestsTable.grantReadWriteData(editNoteLambda);
     likesTable.grantReadWriteData(editNoteLambda);
+    countsTable.grantReadWriteData(editNoteLambda);
 
     const deleteNoteLambda = this.createDefaultNodeLambda('deleteNote');
     notesTable.grantReadWriteData(deleteNoteLambda);
     likesTable.grantReadWriteData(deleteNoteLambda);
     usersTable.grantReadWriteData(deleteNoteLambda);
+    countsTable.grantReadWriteData(deleteNoteLambda);
 
     const editNoteLikeLambda = this.createDefaultNodeLambda('editNoteLike');
     likesTable.grantReadWriteData(editNoteLikeLambda);

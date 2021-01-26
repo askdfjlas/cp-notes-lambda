@@ -4,6 +4,7 @@ const NOTE_PK = 'username';
 const problemModule = require('./problem');
 const likeModule = require('./like');
 const userModule = require('./user');
+const countModule = require('./count');
 const dynamodb = require('./Dynamodb/dynamodb');
 const jwt = require('./Cognito/jwt');
 const utils = require('./utils');
@@ -12,7 +13,7 @@ const error400 = require('./error400');
 async function getNotes(username) {
   const projectedAttributes = [
     'username', 'published', 'title', 'platform', 'contestName', 'contestCode',
-    'problemSk', 'problemCode', 'problemName', 'solved', 'editedTime'
+    'problemSk', 'problemCode', 'problemName', 'solved', 'editedTime', 'likeCount'
   ];
 
   return await dynamodb.queryPartitionKey(
@@ -49,6 +50,18 @@ async function getNoteInfo(username, platform, problemId, tokenString, forcePubl
 
   delete noteRow.sk;
   return noteRow;
+}
+
+/* Increment published note counts at all levels of hierarchy */
+async function incrementNotePublishedCount(dbNoteId, increment) {
+  let hierarchyList = dbNoteId.split('#');
+  while(hierarchyList.length > 0) {
+    const sk = hierarchyList.join('#');
+    await countModule.updateCount('NOTE', sk, increment);
+    hierarchyList.splice(hierarchyList.length - 1);
+  }
+  /* Most general hierarchy level */
+  await countModule.updateCount('NOTE', '!', increment);
 }
 
 async function addOrEditNote(username, platform, problemId, title, solved,
@@ -99,6 +112,18 @@ async function addOrEditNote(username, platform, problemId, title, solved,
       await dynamodb.updateValue(
         NOTE_TABLE, itemKey, null, noteFixedAttributes
       );
+
+      if(noteDynamicAttributes.published) {
+        await incrementNotePublishedCount(dbNoteId, 1);
+      }
+    }
+    else {
+      if(noteDynamicAttributes.published && !oldItem.published) {
+        await incrementNotePublishedCount(dbNoteId, 1);
+      }
+      else if(!noteDynamicAttributes.published && oldItem.published) {
+        await incrementNotePublishedCount(dbNoteId, -1);
+      }
     }
   }
   else {
@@ -107,7 +132,13 @@ async function addOrEditNote(username, platform, problemId, title, solved,
       ...noteFixedAttributes
     };
 
-    await dynamodb.insertValue(NOTE_TABLE, NOTE_PK, noteObject, false);
+    const itemInserted = await dynamodb.insertValue(
+      NOTE_TABLE, NOTE_PK, noteObject, false
+    );
+
+    if(itemInserted && noteObject.published) {
+      await incrementNotePublishedCount(dbNoteId, 1);
+    }
   }
 }
 
@@ -148,6 +179,10 @@ async function deleteNote(username, platform, problemId, tokenString) {
   if(oldNoteObject) {
     const oldAuthorContribution = Math.pow(oldNoteObject.likeCount, 3);
     await userModule.updateContribution(username, -oldAuthorContribution);
+
+    if(oldNoteObject.published) {
+      await incrementNotePublishedCount(dbNoteId, -1);
+    }
   }
 
   await likeModule.deleteNoteLikes(username, platform, problemId);

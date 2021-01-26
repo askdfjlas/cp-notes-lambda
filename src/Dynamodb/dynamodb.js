@@ -182,7 +182,7 @@ async function insertValue(tableName, pk, valueObject, overwrite) {
 
 async function updateValue(tableName, itemKey, additionUpdates, setUpdates,
                            forceExistence=false) {
-  const [ updateExpression, expressionAttributeValues ] =
+  const [ updateExpression, expressionAttributeValues, expressionAttributeNames ] =
     dynamodbUtils.generateUpdateExpression(additionUpdates, setUpdates);
 
   const params = {
@@ -190,6 +190,7 @@ async function updateValue(tableName, itemKey, additionUpdates, setUpdates,
     Key: dynamodbUtils.createItemFromObject(itemKey),
     UpdateExpression: updateExpression,
     ExpressionAttributeValues: expressionAttributeValues,
+    ExpressionAttributeNames: expressionAttributeNames,
     ReturnValues: 'ALL_OLD'
   };
 
@@ -207,7 +208,7 @@ async function updateValue(tableName, itemKey, additionUpdates, setUpdates,
   }
   catch(err) {
     if(err.name === 'ConditionalCheckFailedException' && forceExistence) {
-      return false;
+      return null;
     }
     throw err;
   }

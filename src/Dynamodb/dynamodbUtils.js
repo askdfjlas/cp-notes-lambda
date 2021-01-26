@@ -1,4 +1,4 @@
-const USED_DDB_KEYWORDS = ['name'];
+const USED_DDB_KEYWORDS = ['name', 'count'];
 
 function filterType(data) {
   if(data.hasOwnProperty('S'))
@@ -95,24 +95,27 @@ function generateUpdateExpression(additionUpdates={}, setUpdates={}) {
   let additionUpdateFragments = [];
   let setUpdateFragments = [];
   let expressionAttributeValues = {};
+  let expressionAttributeNames = {};
 
   for(let attribute in additionUpdates) {
     const oldAttribute = attribute;
     attribute = replaceAttributeValue(attribute);
-    additionUpdateFragments.push(`${oldAttribute} :${attribute}`);
+    additionUpdateFragments.push(`#${attribute} :${attribute}`);
 
     const increment = additionUpdates[oldAttribute];
     expressionAttributeValues[`:${attribute}`] = { N: '' + increment };
+    expressionAttributeNames[`#${attribute}`] = oldAttribute;
   }
 
   for(let attribute in setUpdates) {
     const oldAttribute = attribute;
     attribute = replaceAttributeValue(attribute);
-    setUpdateFragments.push(`${oldAttribute} = :${attribute}`);
+    setUpdateFragments.push(`#${attribute} = :${attribute}`);
 
     expressionAttributeValues[`:${attribute}`] = createDynamodbObjectFromValue(
-      setUpdates[attribute]
+      setUpdates[oldAttribute]
     );
+    expressionAttributeNames[`#${attribute}`] = oldAttribute;
   }
 
   let updateExpressions = [];
@@ -123,7 +126,8 @@ function generateUpdateExpression(additionUpdates={}, setUpdates={}) {
     updateExpressions.push('SET ' + setUpdateFragments.join(','));
   }
 
-  return [ updateExpressions.join(' '), expressionAttributeValues ];
+  return [ updateExpressions.join(' '), expressionAttributeValues,
+           expressionAttributeNames ];
 }
 
 module.exports.filterType = filterType;
