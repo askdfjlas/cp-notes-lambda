@@ -137,4 +137,5 @@ module.exports.filterProjectedAttributes = filterProjectedAttributes;
 module.exports.removePrefixZeroes = removePrefixZeroes;
 module.exports.inflatePrefixZeroes = inflatePrefixZeroes;
 module.exports.createItemFromObject = createItemFromObject;
+module.exports.createDynamodbObjectFromValue = createDynamodbObjectFromValue;
 module.exports.generateUpdateExpression = generateUpdateExpression;

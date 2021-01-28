@@ -40,6 +40,16 @@ export class CpNotesLambdaStack extends cdk.Stack {
       tableName: 'notes'
     });
 
+    notesTable.addGlobalSecondaryIndex({
+      indexName: 'notes-all',
+      partitionKey: { name: 'published', type: dynamodb.AttributeType.NUMBER },
+      sortKey: { name: 'likeCount', type: dynamodb.AttributeType.NUMBER },
+      nonKeyAttributes: [ 'contestCode', 'contestName', 'platform',
+                          'problemCode', 'problemName', 'problemSk',
+                          'solved', 'title' ],
+      projectionType: dynamodb.ProjectionType.INCLUDE
+    });
+
     const likesTable = new dynamodb.Table(this, 'likes', {
       partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'username', type: dynamodb.AttributeType.STRING },
@@ -116,6 +126,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const getNotesLambda = this.createDefaultNodeLambda('getNotes');
     notesTable.grantReadWriteData(getNotesLambda);
     likesTable.grantReadWriteData(getNotesLambda);
+    countsTable.grantReadWriteData(getNotesLambda);
 
     const editNoteLambda = this.createDefaultNodeLambda('editNote');
     notesTable.grantReadWriteData(editNoteLambda);

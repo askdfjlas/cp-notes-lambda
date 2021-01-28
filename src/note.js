@@ -1,5 +1,8 @@
 const NOTE_TABLE = 'notes';
 const NOTE_PK = 'username';
+const NOTE_ALL_INDEX = 'notes-all';
+const NOTE_ALL_PK = 'published';
+const PAGINATE_SIZE = 50;
 
 const problemModule = require('./problem');
 const likeModule = require('./like');
@@ -16,9 +19,29 @@ async function getNotes(username) {
     'problemSk', 'problemCode', 'problemName', 'solved', 'editedTime', 'likeCount'
   ];
 
-  return await dynamodb.queryPartitionKey(
+  const rows = await dynamodb.queryPartitionKey(
     NOTE_TABLE, NOTE_PK, username, true, projectedAttributes
   );
+
+  for(let row of rows) {
+    row.published = row.published ? true : false;
+  }
+
+  return rows;
+}
+
+async function getMostLikedNotes(platform, contestId, problemId, page) {
+  const notes = await dynamodb.queryPartitionKeyKthPage(
+    NOTE_TABLE, NOTE_ALL_PK, 1, page, PAGINATE_SIZE, false, NOTE_ALL_INDEX
+  );
+
+  const totalNotes = await countModule.getCount('NOTE', '!');
+  const totalPages = Math.ceil(totalNotes/PAGINATE_SIZE);
+
+  return {
+    notes: notes,
+    totalPages: totalPages
+  };
 }
 
 async function getNoteInfo(username, platform, problemId, tokenString, forcePublished) {
@@ -49,6 +72,8 @@ async function getNoteInfo(username, platform, problemId, tokenString, forcePubl
   }
 
   delete noteRow.sk;
+  noteRow.published = noteRow.published ? true : false;
+
   return noteRow;
 }
 
@@ -80,7 +105,7 @@ async function addOrEditNote(username, platform, problemId, title, solved,
     title: title,
     solved: solved,
     content: content,
-    published: published,
+    published: (published ? 1 : 0),
     editedTime: (new Date()).toJSON()
   };
 
@@ -203,6 +228,7 @@ async function checkExistence(username, platform, problemId, forcePublished) {
 }
 
 module.exports.getNotes = getNotes;
+module.exports.getMostLikedNotes = getMostLikedNotes;
 module.exports.getNoteInfo = getNoteInfo;
 module.exports.addOrEditNote = addOrEditNote;
 module.exports.updateNoteLikeCount = updateNoteLikeCount;

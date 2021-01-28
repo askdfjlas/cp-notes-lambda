@@ -109,6 +109,30 @@ async function queryPrimaryKey(tableName, pk, sk, pkValue, skValue,
   return dynamodbUtils.filterRows(rows);
 }
 
+async function queryPartitionKeyKthPage(tableName, pk, pkValue, k, pageSize,
+                                        forward=true, indexName=null) {
+  let params = {
+    TableName: tableName,
+    IndexName: indexName,
+    Limit: pageSize,
+    Select: 'COUNT',
+    KeyConditionExpression: `${pk} = :val`,
+    ExpressionAttributeValues: {
+      ':val': dynamodbUtils.createDynamodbObjectFromValue(pkValue)
+    },
+    ScanIndexForward: forward
+  }
+
+  for(let i = 0; i < k - 1; i++) {
+    const data = await queryPromise(params);
+    params.ExclusiveStartKey = data.LastEvaluatedKey;
+  }
+
+  delete params.Select;
+  const rows = await queryPromise(params);
+  return dynamodbUtils.filterRows(rows);
+}
+
 async function deletePrimaryKey(tableName, pk, sk, pkValue, skValue) {
   const params = {
     TableName: tableName,
@@ -221,6 +245,7 @@ module.exports.batchWriteItemPromise = batchWriteItemPromise;
 module.exports.scanPromise = scanPromise;
 module.exports.queryPartitionKey = queryPartitionKey;
 module.exports.queryPrimaryKey = queryPrimaryKey;
+module.exports.queryPartitionKeyKthPage = queryPartitionKeyKthPage;
 module.exports.deletePrimaryKey = deletePrimaryKey;
 module.exports.deletePartitionKey = deletePartitionKey;
 module.exports.insertValue = insertValue;

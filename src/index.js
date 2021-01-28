@@ -123,20 +123,31 @@ module.exports.editNote = async function(event) {
 module.exports.getNotes = async function(event) {
   const username = event.queryStringParameters.username;
   const platform = event.queryStringParameters.platform;
+  const contestId = event.queryStringParameters.contestId;
   const problemId = event.queryStringParameters.problemId;
   const forcePublished = event.queryStringParameters.forcePublished;
+  const page = event.queryStringParameters.page;
   const tokenString = event.headers['Authorization'];
 
   try {
-    if(problemId) {
-      const noteInfo = await noteModule.getNoteInfo(
-        username, platform, problemId, tokenString, forcePublished
+    if(page) {
+      const data = await noteModule.getMostLikedNotes(
+        platform, contestId, problemId, page
       );
-      return proxyResponse(noteInfo);
+      return proxyResponse(data);
     }
-
-    const notes = await noteModule.getNotes(username);
-    return proxyResponse(notes);
+    else {
+      if(problemId) {
+        const noteInfo = await noteModule.getNoteInfo(
+          username, platform, problemId, tokenString, forcePublished
+        );
+        return proxyResponse(noteInfo);
+      }
+      else {
+        const notes = await noteModule.getNotes(username);
+        return proxyResponse(notes);
+      }
+    }
   }
   catch(err) {
     return proxyClientError(err);
