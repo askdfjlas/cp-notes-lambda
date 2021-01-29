@@ -31,12 +31,16 @@ async function getNotes(username) {
 }
 
 async function getMostLikedNotes(platform, contestId, problemId, page) {
+  const totalNotes = await countModule.getCount('NOTE', '!');
+  const totalPages = Math.ceil(totalNotes/PAGINATE_SIZE);
+
+  if(page > totalPages) {
+    utils.throwCustomError(error400.PAGE_NOT_FOUND);
+  }
+
   const notes = await dynamodb.queryPartitionKeyKthPage(
     NOTE_TABLE, NOTE_ALL_PK, 1, page, PAGINATE_SIZE, false, NOTE_ALL_INDEX
   );
-
-  const totalNotes = await countModule.getCount('NOTE', '!');
-  const totalPages = Math.ceil(totalNotes/PAGINATE_SIZE);
 
   return {
     notes: notes,

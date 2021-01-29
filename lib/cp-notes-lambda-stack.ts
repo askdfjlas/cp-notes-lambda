@@ -46,7 +46,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
       sortKey: { name: 'likeCount', type: dynamodb.AttributeType.NUMBER },
       nonKeyAttributes: [ 'contestCode', 'contestName', 'platform',
                           'problemCode', 'problemName', 'problemSk',
-                          'solved', 'title' ],
+                          'solved', 'title', 'editedTime' ],
       projectionType: dynamodb.ProjectionType.INCLUDE
     });
 
