@@ -40,16 +40,6 @@ export class CpNotesLambdaStack extends cdk.Stack {
       tableName: 'notes'
     });
 
-    notesTable.addGlobalSecondaryIndex({
-      indexName: 'notes-all',
-      partitionKey: { name: 'published', type: dynamodb.AttributeType.NUMBER },
-      sortKey: { name: 'likeCount', type: dynamodb.AttributeType.NUMBER },
-      nonKeyAttributes: [ 'contestCode', 'contestName', 'platform',
-                          'problemCode', 'problemName', 'problemSk',
-                          'solved', 'title', 'editedTime' ],
-      projectionType: dynamodb.ProjectionType.INCLUDE
-    });
-
     const likesTable = new dynamodb.Table(this, 'likes', {
       partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'username', type: dynamodb.AttributeType.STRING },
@@ -65,6 +55,44 @@ export class CpNotesLambdaStack extends cdk.Stack {
       partitionKey: { name: 'countType', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'sk', type: dynamodb.AttributeType.STRING },
       tableName: 'counts'
+    });
+
+    // DDB GSIs
+    const noteImportantAttributes = [ 'contestCode', 'contestName', 'platform',
+                                      'problemCode', 'problemName', 'problemSk',
+                                      'solved', 'title', 'editedTime',
+                                      'published' ];
+
+    notesTable.addGlobalSecondaryIndex({
+      indexName: 'notes-all',
+      partitionKey: { name: 'published', type: dynamodb.AttributeType.NUMBER },
+      sortKey: { name: 'likeCount', type: dynamodb.AttributeType.NUMBER },
+      nonKeyAttributes: noteImportantAttributes,
+      projectionType: dynamodb.ProjectionType.INCLUDE
+    });
+
+    notesTable.addGlobalSecondaryIndex({
+      indexName: 'notes-platform',
+      partitionKey: { name: 'platformIndexPk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'likeCount', type: dynamodb.AttributeType.NUMBER },
+      nonKeyAttributes: noteImportantAttributes,
+      projectionType: dynamodb.ProjectionType.INCLUDE
+    });
+
+    notesTable.addGlobalSecondaryIndex({
+      indexName: 'notes-contest',
+      partitionKey: { name: 'contestIndexPk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'likeCount', type: dynamodb.AttributeType.NUMBER },
+      nonKeyAttributes: noteImportantAttributes,
+      projectionType: dynamodb.ProjectionType.INCLUDE
+    });
+
+    notesTable.addGlobalSecondaryIndex({
+      indexName: 'notes-problem',
+      partitionKey: { name: 'problemIndexPk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'likeCount', type: dynamodb.AttributeType.NUMBER },
+      nonKeyAttributes: noteImportantAttributes,
+      projectionType: dynamodb.ProjectionType.INCLUDE
     });
 
     // S3

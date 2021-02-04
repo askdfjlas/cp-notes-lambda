@@ -1,10 +1,17 @@
 const NOTE_TABLE = 'notes';
 const NOTE_PK = 'username';
+const NOTE_PROBLEM_INDEX = 'notes-problem';
+const NOTE_PROBLEM_PK = 'problemIndexPk';
+const NOTE_CONTEST_INDEX = 'notes-contest';
+const NOTE_CONTEST_PK = 'contestIndexPk';
+const NOTE_PLATFORM_INDEX = 'notes-platform';
+const NOTE_PLATFORM_PK = 'platformIndexPk';
 const NOTE_ALL_INDEX = 'notes-all';
 const NOTE_ALL_PK = 'published';
 const PAGINATE_SIZE = 50;
 
 const problemModule = require('./problem');
+const contestModule = require('./contest');
 const likeModule = require('./like');
 const userModule = require('./user');
 const countModule = require('./count');
@@ -31,20 +38,50 @@ async function getNotes(username) {
 }
 
 async function getMostLikedNotes(platform, contestId, problemId, page) {
-  const totalNotes = await countModule.getCount('NOTE', '!');
-  const totalPages = Math.ceil(totalNotes/PAGINATE_SIZE);
+  let noteIndexPk, dbCountId, noteIndexName;
+  if(problemId) {
+    const dbProblemId = problemModule.inflateProblemId(problemId);
+    dbCountId = `${platform}#${dbProblemId}`;
+    noteIndexPk = NOTE_PROBLEM_PK;
+    noteIndexName = NOTE_PROBLEM_INDEX;
+  }
+  else if(contestId) {
+    const dbContestId = contestModule.inflateContestId(contestId);
+    dbCountId = `${platform}#${dbContestId}`;
+    noteIndexPk = NOTE_CONTEST_PK;
+    noteIndexName = NOTE_CONTEST_INDEX;
+  }
+  else if(platform) {
+    dbCountId = platform;
+    noteIndexPk = NOTE_PLATFORM_PK;
+    noteIndexName = NOTE_PLATFORM_INDEX;
+  }
+  else {
+    dbCountId = '!';
+    noteIndexPk = NOTE_ALL_PK;
+    noteIndexName = NOTE_ALL_INDEX;
+  }
 
-  if(page > totalPages) {
+  let noteIndexPkValue = `1#${dbCountId}`;
+  if(!problemId && !contestId && !platform) {
+    noteIndexPkValue = 1;
+  }
+
+  const totalNoteCount = await countModule.getCount('NOTE', dbCountId);
+  const totalPages = Math.ceil(totalNoteCount/PAGINATE_SIZE);
+
+  if(page > Math.max(totalPages, 1)) {
     utils.throwCustomError(error400.PAGE_NOT_FOUND);
   }
 
-  const notes = await dynamodb.queryPartitionKeyKthPage(
-    NOTE_TABLE, NOTE_ALL_PK, 1, page, PAGINATE_SIZE, false, NOTE_ALL_INDEX
+  const paginatedNotes = await dynamodb.queryPartitionKeyKthPage(
+    NOTE_TABLE, noteIndexPk, noteIndexPkValue, page, PAGINATE_SIZE,
+    false, noteIndexName
   );
 
   return {
-    notes: notes,
-    totalPages: totalPages
+    notes: paginatedNotes,
+    totalPages: Math.max(totalPages, 1)
   };
 }
 
@@ -104,12 +141,21 @@ async function addOrEditNote(username, platform, problemId, title, solved,
     title = `Notes for ${problemInfo.problemName}`;
   }
 
+  const publishedNumber = published ? 1 : 0;
+  const dbContestId = contestModule.inflateContestId(problemInfo.contestCode);
+  const platformIndexPk = `${publishedNumber}#${platform}`;
+  const contestIndexPk = `${publishedNumber}#${platform}#${dbContestId}`;
+  const problemIndexPk = `${publishedNumber}#${platform}#${dbProblemId}`;
   const dbNoteId = `${platform}#${dbProblemId}`;
+
   const noteDynamicAttributes = {
     title: title,
     solved: solved,
     content: content,
-    published: (published ? 1 : 0),
+    published: publishedNumber,
+    problemIndexPk: problemIndexPk,
+    contestIndexPk: contestIndexPk,
+    problemIndexPk: problemIndexPk,
     editedTime: (new Date()).toJSON()
   };
 

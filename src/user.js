@@ -1,3 +1,8 @@
+const USER_TABLE = 'users';
+const USER_PK = 'username';
+const AVATAR_PREFIX = 'avatar/';
+const AVATAR_DEFAULT_EXTENSION = 'jpg';
+
 const s3 = require('./S3/s3');
 const dynamodb = require('./Dynamodb/dynamodb');
 const cacheConstants = require('./S3/cacheConstants');
@@ -5,11 +10,6 @@ const jwt = require('./Cognito/jwt');
 const userPool = require('./Cognito/userPool');
 const error400 = require('./error400');
 const utils = require('./utils');
-
-const USER_TABLE = 'users';
-const USER_PK = 'username';
-const AVATAR_PREFIX = 'avatar/';
-const AVATAR_DEFAULT_EXTENSION = 'jpg';
 
 async function getProfile(username, tokenString) {
   try {
