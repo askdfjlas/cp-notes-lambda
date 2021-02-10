@@ -125,14 +125,15 @@ module.exports.getNotes = async function(event) {
   const platform = event.queryStringParameters.platform;
   const contestId = event.queryStringParameters.contestId;
   const problemId = event.queryStringParameters.problemId;
+  const recent = event.queryStringParameters.recent;
   const forcePublished = event.queryStringParameters.forcePublished;
   const page = event.queryStringParameters.page;
   const tokenString = event.headers['Authorization'];
 
   try {
     if(page) {
-      const data = await noteModule.getMostLikedNotes(
-        platform, contestId, problemId, page
+      const data = await noteModule.getNotesFilteredList(
+        platform, contestId, problemId, recent, page
       );
       return proxyResponse(data);
     }
@@ -144,7 +145,7 @@ module.exports.getNotes = async function(event) {
         return proxyResponse(noteInfo);
       }
       else {
-        const notes = await noteModule.getNotes(username);
+        const notes = await noteModule.getUserNotes(username);
         return proxyResponse(notes);
       }
     }

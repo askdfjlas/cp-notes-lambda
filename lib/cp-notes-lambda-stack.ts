@@ -72,6 +72,14 @@ export class CpNotesLambdaStack extends cdk.Stack {
     });
 
     notesTable.addGlobalSecondaryIndex({
+      indexName: 'notes-recent',
+      partitionKey: { name: 'published', type: dynamodb.AttributeType.NUMBER },
+      sortKey: { name: 'activityTime', type: dynamodb.AttributeType.STRING },
+      nonKeyAttributes: noteImportantAttributes,
+      projectionType: dynamodb.ProjectionType.INCLUDE
+    });
+
+    notesTable.addGlobalSecondaryIndex({
       indexName: 'notes-platform',
       partitionKey: { name: 'platformIndexPk', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'likeCount', type: dynamodb.AttributeType.NUMBER },

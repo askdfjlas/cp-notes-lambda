@@ -8,6 +8,8 @@ const NOTE_PLATFORM_INDEX = 'notes-platform';
 const NOTE_PLATFORM_PK = 'platformIndexPk';
 const NOTE_ALL_INDEX = 'notes-all';
 const NOTE_ALL_PK = 'published';
+const NOTE_RECENT_INDEX = 'notes-recent';
+const NOTE_RECENT_PK = 'published';
 const PAGINATE_SIZE = 50;
 
 const problemModule = require('./problem');
@@ -20,7 +22,7 @@ const jwt = require('./Cognito/jwt');
 const utils = require('./utils');
 const error400 = require('./error400');
 
-async function getNotes(username) {
+async function getUserNotes(username) {
   const projectedAttributes = [
     'username', 'published', 'title', 'platform', 'contestName', 'contestCode',
     'problemSk', 'problemCode', 'problemName', 'solved', 'editedTime', 'likeCount'
@@ -37,9 +39,14 @@ async function getNotes(username) {
   return rows;
 }
 
-async function getMostLikedNotes(platform, contestId, problemId, page) {
-  let noteIndexPk, dbCountId, noteIndexName;
-  if(problemId) {
+async function getNotesFilteredList(platform, contestId, problemId, recent, page) {
+  let noteIndexName, noteIndexPk, dbCountId;
+  if(recent) {
+    dbCountId = '!';
+    noteIndexPk = NOTE_RECENT_PK;
+    noteIndexName = NOTE_RECENT_INDEX;
+  }
+  else if(problemId) {
     const dbProblemId = problemModule.inflateProblemId(problemId);
     dbCountId = `${platform}#${dbProblemId}`;
     noteIndexPk = NOTE_PROBLEM_PK;
@@ -63,7 +70,7 @@ async function getMostLikedNotes(platform, contestId, problemId, page) {
   }
 
   let noteIndexPkValue = `1#${dbCountId}`;
-  if(!problemId && !contestId && !platform) {
+  if(recent || (!problemId && !contestId && !platform)) {
     noteIndexPkValue = 1;
   }
 
@@ -147,6 +154,7 @@ async function addOrEditNote(username, platform, problemId, title, solved,
   const contestIndexPk = `${publishedNumber}#${platform}#${dbContestId}`;
   const problemIndexPk = `${publishedNumber}#${platform}#${dbProblemId}`;
   const dbNoteId = `${platform}#${dbProblemId}`;
+  const currentTime = (new Date()).toJSON();
 
   const noteDynamicAttributes = {
     title: title,
@@ -156,7 +164,8 @@ async function addOrEditNote(username, platform, problemId, title, solved,
     problemIndexPk: problemIndexPk,
     contestIndexPk: contestIndexPk,
     problemIndexPk: problemIndexPk,
-    editedTime: (new Date()).toJSON()
+    editedTime: currentTime,
+    activityTime: currentTime
   };
 
   const noteFixedAttributes = {
@@ -277,8 +286,8 @@ async function checkExistence(username, platform, problemId, forcePublished) {
     return rows.length > 0;
 }
 
-module.exports.getNotes = getNotes;
-module.exports.getMostLikedNotes = getMostLikedNotes;
+module.exports.getUserNotes = getUserNotes;
+module.exports.getNotesFilteredList = getNotesFilteredList;
 module.exports.getNoteInfo = getNoteInfo;
 module.exports.addOrEditNote = addOrEditNote;
 module.exports.updateNoteLikeCount = updateNoteLikeCount;
