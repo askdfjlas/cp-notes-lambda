@@ -21,11 +21,17 @@ function inflateProblemId(problemId) {
 }
 
 function getProblemLink(platform, problemId) {
+  let contestCode, problemCode;
   switch(platform) {
     case 'CodeForces':
-      const contestCode = problemId.split('#')[0];
-      const letter = problemId.split('#')[1];
-      return `https://codeforces.com/contest/${contestCode}/problem/${letter}`;
+      contestCode = problemId.split('#')[0];
+      problemCode = problemId.split('#')[1];
+      return `https://codeforces.com/contest/${contestCode}/problem/${problemCode}`;
+    case 'CodeChef':
+      const arr = problemId.split('@');
+      contestCode = arr[1].split('#')[0];
+      problemCode = arr[1].split('#')[1];
+      return `https://www.codechef.com/${contestCode}/problems/${problemCode}`;
     default:
       return null;
   }
@@ -35,7 +41,7 @@ async function getProblems(platform, contestId) {
   let problems;
 
   if(contestId) {
-    dbContestId = contestModule.inflateContestId(contestId);
+    const dbContestId = contestModule.inflateContestId(contestId);
     problems =  await dynamodb.queryPrimaryKey(PROBLEM_TABLE, PROBLEM_PK,
       'sk', platform, dbContestId, [
         'sk', 'name'

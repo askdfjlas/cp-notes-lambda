@@ -12,7 +12,9 @@ function prettifyContestIds(contests) {
 }
 
 function inflateContestId(contestId) {
-  return dynamodbUtils.inflatePrefixZeroes(contestId, CONTEST_ID_LENGTH);
+  let arr = contestId.split('@');
+  arr[0] = dynamodbUtils.inflatePrefixZeroes(arr[0], CONTEST_ID_LENGTH);
+  return arr.join('@');
 }
 
 async function getContests(platform) {

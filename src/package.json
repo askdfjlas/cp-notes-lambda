@@ -9,7 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cheerio": "^1.0.0-rc.5",
     "jsonwebtoken": "^8.5.1",
     "jwk-to-pem": "^2.0.4",
     "node-fetch": "^2.6.1"
