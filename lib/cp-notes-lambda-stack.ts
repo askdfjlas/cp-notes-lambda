@@ -134,6 +134,16 @@ export class CpNotesLambdaStack extends cdk.Stack {
     usersTable.grantReadWriteData(cacheUpdateUserListLambda);
     cacheBucket.grantReadWrite(cacheUpdateUserListLambda);
 
+    const cacheUpdateProblemDataLambda = new lambda.Function(this, 'cacheUpdateProblemData', {
+      runtime: lambda.Runtime.PYTHON_3_8,
+      handler: 'index.handler',
+      code: new lambda.AssetCode('cp-notes-problem-data/src'),
+      timeout: cdk.Duration.minutes(10)
+    });
+    cacheBucket.grantReadWrite(cacheUpdateProblemDataLambda);
+    contestsTable.grantReadWriteData(cacheUpdateProblemDataLambda);
+    problemsTable.grantReadWriteData(cacheUpdateProblemDataLambda);
+
     const getUsersLambda = this.createDefaultNodeLambda('getUsers');
     getUsersLambda.role.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
@@ -187,9 +197,18 @@ export class CpNotesLambdaStack extends cdk.Stack {
       cacheUpdateUserListLambda
     );
 
+    const cacheUpdateProblemDataLambdaTarget = new targets.LambdaFunction(
+      cacheUpdateProblemDataLambda
+    );
+
     new events.Rule(this, 'ScheduleRule', {
       schedule: events.Schedule.rate(cdk.Duration.minutes(70)),
       targets: [ cacheUpdateUserListLambdaTarget ]
+    });
+
+    new events.Rule(this, 'ProblemDataScheduleRule', {
+      schedule: events.Schedule.rate(cdk.Duration.days(1)),
+      targets: [ cacheUpdateProblemDataLambdaTarget ]
     });
 
     // Cognito
