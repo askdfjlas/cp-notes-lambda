@@ -1,4 +1,4 @@
-const USED_DDB_KEYWORDS = ['name', 'count'];
+const USED_DDB_KEYWORDS = ['name', 'count', 'level'];
 
 function filterType(data) {
   if(data.hasOwnProperty('S'))

@@ -5,9 +5,10 @@ const CONTEST_ID_LENGTH = 8;
 const dynamodb = require('./Dynamodb/dynamodb');
 const dynamodbUtils = require('./Dynamodb/dynamodbUtils');
 
-function prettifyContestIds(contests) {
+function prettifyContestIds(platform, contests) {
   for(let i = 0; i < contests.length; i++) {
     contests[i].sk = dynamodbUtils.removePrefixZeroes(contests[i].sk);
+    contests[i].contestCode = getContestCode(platform, contests[i].sk);
   }
 }
 
@@ -18,13 +19,20 @@ function inflateContestId(contestId) {
 }
 
 async function getContests(platform) {
-  var contests = await dynamodb.queryPartitionKey(CONTEST_TABLE, CONTEST_PK,
+  let contests = await dynamodb.queryPartitionKey(CONTEST_TABLE, CONTEST_PK,
     platform, false, [
     'sk', 'name'
   ]);
 
-  prettifyContestIds(contests);
+  prettifyContestIds(platform, contests);
   return contests;
+}
+
+function getContestCode(platform, contestId) {
+  if(platform === 'CodeChef' || platform === 'AtCoder') {
+    return contestId.split('@')[1];
+  }
+  return contestId;
 }
 
 async function getContestInfo(platform, contestId) {
@@ -41,7 +49,7 @@ async function getContestInfo(platform, contestId) {
 
   return {
     name: contestRow.name,
-    code: contestId
+    code: getContestCode(platform, contestId)
   };
 }
 

@@ -5,9 +5,10 @@ const contestModule = require('./contest');
 const dynamodb = require('./Dynamodb/dynamodb');
 const dynamodbUtils = require('./Dynamodb/dynamodbUtils');
 
-function prettifyProblemIds(problems) {
+function prettifyProblemIds(platform, problems) {
   for(let i = 0; i < problems.length; i++) {
     problems[i].sk = dynamodbUtils.removePrefixZeroes(problems[i].sk);
+    problems[i].problemCode = getProblemCode(platform, problems[i].sk);
   }
 }
 
@@ -20,20 +21,47 @@ function inflateProblemId(problemId) {
   return `${inflatedContestId}#${problemCode}`;
 }
 
-function getProblemLink(platform, problemId) {
-  let contestCode, problemCode;
+function getProblemLink(platform, problemId, rd) {
+  let contestCode, problemCode, arr;
   switch(platform) {
     case 'CodeForces':
       contestCode = problemId.split('#')[0];
       problemCode = problemId.split('#')[1];
       return `https://codeforces.com/contest/${contestCode}/problem/${problemCode}`;
     case 'CodeChef':
-      const arr = problemId.split('@');
+      arr = problemId.split('@');
       contestCode = arr[1].split('#')[0];
       problemCode = arr[1].split('#')[1];
       return `https://www.codechef.com/${contestCode}/problems/${problemCode}`;
+    case 'AtCoder':
+      arr = problemId.split('@');
+      contestCode = arr[1].split('#')[0].toLowerCase();
+      problemCode = arr[1].split('#')[1].toLowerCase();
+      return `https://atcoder.jp/contests/${contestCode}/tasks/${contestCode}_${problemCode}`
+    case 'TopCoder':
+      return `https://community.topcoder.com/stat?c=problem_statement&pm=${rd}`
+    case 'Project Euler':
+      problemCode = dynamodbUtils.removePrefixZeroes(problemId.split('#')[1]);
+      return `https://projecteuler.net/problem=${problemCode}`
+    case 'ICPC':
+      return `https://icpc.kattis.com/problems/${rd}`
     default:
       return null;
+  }
+}
+
+function getProblemCode(platform, problemId) {
+  if(platform === 'CodeForces' || platform === 'ICPC') {
+    return problemId.replace('#', '');
+  }
+  if(platform === 'AtCoder') {
+    return problemId.split('@')[1].replace('#', '');
+  }
+  if(platform === 'CodeChef' || platform === 'TopCoder') {
+    return problemId.split('#')[1];
+  }
+  if(platform === 'Project Euler') {
+    return dynamodbUtils.removePrefixZeroes(problemId.split('#')[1]);
   }
 }
 
@@ -56,7 +84,7 @@ async function getProblems(platform, contestId) {
     );
   }
 
-  prettifyProblemIds(problems);
+  prettifyProblemIds(platform, problems);
   return problems;
 }
 
@@ -65,7 +93,7 @@ async function getProblemInfo(platform, problemId) {
   const dbProblemId = inflateProblemId(problemId);
 
   const problemRows = await dynamodb.queryPrimaryKey(PROBLEM_TABLE, PROBLEM_PK,
-    'sk', platform, dbProblemId, [ 'name' ]
+    'sk', platform, dbProblemId, [ 'name', 'level', 'rd' ]
   );
 
   if(problemRows.length === 0) {
@@ -75,13 +103,19 @@ async function getProblemInfo(platform, problemId) {
   const contestInfo = await contestModule.getContestInfo(platform, contestId);
   const problemRow = problemRows[0];
 
-  return {
-    problemCode: problemId.replace('#', ''),
+  let problemInfo = {
+    problemCode: getProblemCode(platform, problemId),
     problemName: problemRow.name,
     contestCode: contestInfo.code,
     contestName: contestInfo.name,
-    link: getProblemLink(platform, problemId)
+    link: getProblemLink(platform, problemId, problemRow.rd)
   };
+
+  if(problemRow.level) {
+    problemInfo.level = problemRow.level;
+  }
+
+  return problemInfo;
 }
 
 async function checkExistence(platform, dbProblemId) {

@@ -61,7 +61,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const noteImportantAttributes = [ 'contestCode', 'contestName', 'platform',
                                       'problemCode', 'problemName', 'problemSk',
                                       'solved', 'title', 'editedTime',
-                                      'published' ];
+                                      'published', 'level', 'rd' ];
 
     notesTable.addGlobalSecondaryIndex({
       indexName: 'notes-all',

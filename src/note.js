@@ -25,7 +25,8 @@ const error400 = require('./error400');
 async function getUserNotes(username) {
   const projectedAttributes = [
     'username', 'published', 'title', 'platform', 'contestName', 'contestCode',
-    'problemSk', 'problemCode', 'problemName', 'solved', 'editedTime', 'likeCount'
+    'problemSk', 'problemCode', 'problemName', 'solved', 'editedTime', 'likeCount',
+    'level'
   ];
 
   const rows = await dynamodb.queryPartitionKey(
@@ -137,49 +138,8 @@ async function incrementNotePublishedCount(dbNoteId, increment) {
   await countModule.updateCount('NOTE', '!', increment);
 }
 
-async function addOrEditNote(username, platform, problemId, title, solved,
-                             content, published, tokenString, overwrite) {
-  await jwt.verifyUser(username, tokenString);
-
-  const dbProblemId = problemModule.inflateProblemId(problemId);
-  const problemInfo = await problemModule.getProblemInfo(platform, problemId);
-
-  if(!title) {
-    title = `Notes for ${problemInfo.problemName}`;
-  }
-
-  const publishedNumber = published ? 1 : 0;
-  const dbContestId = contestModule.inflateContestId(problemInfo.contestCode);
-  const platformIndexPk = `${publishedNumber}#${platform}`;
-  const contestIndexPk = `${publishedNumber}#${platform}#${dbContestId}`;
-  const problemIndexPk = `${publishedNumber}#${platform}#${dbProblemId}`;
-  const dbNoteId = `${platform}#${dbProblemId}`;
-  const currentTime = (new Date()).toJSON();
-
-  const noteDynamicAttributes = {
-    title: title,
-    solved: solved,
-    content: content,
-    published: publishedNumber,
-    platformIndexPk: platformIndexPk,
-    contestIndexPk: contestIndexPk,
-    problemIndexPk: problemIndexPk,
-    editedTime: currentTime,
-    activityTime: currentTime
-  };
-
-  const noteFixedAttributes = {
-    [ NOTE_PK ]: username,
-    sk: dbNoteId,
-    platform: platform,
-    problemSk: problemId,
-    problemCode: problemInfo.problemCode,
-    problemName: problemInfo.problemName,
-    contestName: problemInfo.contestName,
-    contestCode: problemInfo.contestCode,
-    likeCount: 0
-  }
-
+async function writeNote(username, dbNoteId, noteDynamicAttributes,
+                         noteFixedAttributes, overwrite) {
   if(overwrite) {
     const itemKey = {
       [ NOTE_PK ]: username,
@@ -224,6 +184,58 @@ async function addOrEditNote(username, platform, problemId, title, solved,
       await incrementNotePublishedCount(dbNoteId, 1);
     }
   }
+}
+
+async function addOrEditNote(username, platform, problemId, title, solved,
+                             content, published, tokenString, overwrite) {
+  await jwt.verifyUser(username, tokenString);
+
+  const contestId = problemId.split('#')[0];
+  const dbContestId = contestModule.inflateContestId(contestId);
+  const dbProblemId = problemModule.inflateProblemId(problemId);
+  const problemInfo = await problemModule.getProblemInfo(platform, problemId);
+
+  if(!title) {
+    title = `Notes for ${problemInfo.problemName}`;
+  }
+
+  const publishedNumber = published ? 1 : 0;
+  const platformIndexPk = `${publishedNumber}#${platform}`;
+  const contestIndexPk = `${publishedNumber}#${platform}#${dbContestId}`;
+  const problemIndexPk = `${publishedNumber}#${platform}#${dbProblemId}`;
+  const dbNoteId = `${platform}#${dbProblemId}`;
+  const currentTime = (new Date()).toJSON();
+
+  const noteDynamicAttributes = {
+    title: title,
+    solved: solved,
+    content: content,
+    published: publishedNumber,
+    platformIndexPk: platformIndexPk,
+    contestIndexPk: contestIndexPk,
+    problemIndexPk: problemIndexPk,
+    editedTime: currentTime,
+    activityTime: currentTime
+  };
+
+  let noteFixedAttributes = {
+    [ NOTE_PK ]: username,
+    sk: dbNoteId,
+    platform: platform,
+    problemSk: problemId,
+    problemCode: problemInfo.problemCode,
+    problemName: problemInfo.problemName,
+    contestName: problemInfo.contestName,
+    contestCode: problemInfo.contestCode,
+    likeCount: 0
+  }
+
+  if('level' in problemInfo) {
+    noteFixedAttributes.level = problemInfo.level;
+  }
+
+  await writeNote(username, dbNoteId, noteDynamicAttributes,
+                  noteFixedAttributes, overwrite);
 }
 
 async function updateNoteLikeCount(noteAuthor, platform, problemId, increment) {
