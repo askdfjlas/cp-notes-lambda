@@ -158,9 +158,11 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const getProblemsLambda = this.createDefaultNodeLambda('getProblems');
     problemsTable.grantReadWriteData(getProblemsLambda);
     contestsTable.grantReadWriteData(getProblemsLambda);
+    cacheBucket.grantReadWrite(getProblemsLambda);
 
     const getContestsLambda = this.createDefaultNodeLambda('getContests');
     contestsTable.grantReadWriteData(getContestsLambda);
+    cacheBucket.grantReadWrite(getContestsLambda);
 
     const addNoteLambda = this.createDefaultNodeLambda('addNote');
     notesTable.grantReadWriteData(addNoteLambda);

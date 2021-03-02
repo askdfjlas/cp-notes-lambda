@@ -1,14 +1,16 @@
 const CONTEST_TABLE = 'contests';
 const CONTEST_PK = 'platform';
 const CONTEST_ID_LENGTH = 8;
+const CONTEST_CACHE_PATH = 'problem-data/contests/';
 
 const dynamodb = require('./Dynamodb/dynamodb');
 const dynamodbUtils = require('./Dynamodb/dynamodbUtils');
+const s3 = require('./S3/s3');
+const cacheConstants = require('./S3/cacheConstants');
 
 function prettifyContestIds(platform, contests) {
   for(let i = 0; i < contests.length; i++) {
     contests[i].sk = dynamodbUtils.removePrefixZeroes(contests[i].sk);
-    contests[i].contestCode = getContestCode(platform, contests[i].sk);
   }
 }
 
@@ -19,27 +21,16 @@ function inflateContestId(contestId) {
 }
 
 async function getContests(platform) {
-  let contests = await dynamodb.queryPartitionKey(CONTEST_TABLE, CONTEST_PK,
-    platform, false, [
-    'sk', 'name'
-  ]);
-
-  prettifyContestIds(platform, contests);
-  return contests;
-}
-
-function getContestCode(platform, contestId) {
-  if(platform === 'CodeChef' || platform === 'AtCoder') {
-    return contestId.split('@')[1];
-  }
-  return contestId;
+  const contestsString = await s3.getFile(cacheConstants.CACHE_NAME,
+    `${CONTEST_CACHE_PATH}${platform}.json`);
+  return JSON.parse(contestsString);
 }
 
 async function getContestInfo(platform, contestId) {
   const dbContestId = inflateContestId(contestId);
 
   const contestRows = await dynamodb.queryPrimaryKey(CONTEST_TABLE, CONTEST_PK,
-    'sk', platform, dbContestId, [ 'name' ]
+    'sk', platform, dbContestId, [ 'name', 'contestCode' ]
   );
 
   if(contestRows.length === 0) {
@@ -49,7 +40,7 @@ async function getContestInfo(platform, contestId) {
 
   return {
     name: contestRow.name,
-    code: getContestCode(platform, contestId)
+    code: contestRow.contestCode
   };
 }
 

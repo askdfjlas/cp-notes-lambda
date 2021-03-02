@@ -1,14 +1,16 @@
 const PROBLEM_TABLE = 'problems';
 const PROBLEM_PK = 'platform';
+const PROBLEM_CACHE_PATH = 'problem-data/problems/';
 
 const contestModule = require('./contest');
 const dynamodb = require('./Dynamodb/dynamodb');
 const dynamodbUtils = require('./Dynamodb/dynamodbUtils');
+const s3 = require('./S3/s3');
+const cacheConstants = require('./S3/cacheConstants');
 
-function prettifyProblemIds(platform, problems) {
+function prettifyProblemIds(problems) {
   for(let i = 0; i < problems.length; i++) {
     problems[i].sk = dynamodbUtils.removePrefixZeroes(problems[i].sk);
-    problems[i].problemCode = getProblemCode(platform, problems[i].sk);
   }
 }
 
@@ -50,42 +52,22 @@ function getProblemLink(platform, problemId, rd) {
   }
 }
 
-function getProblemCode(platform, problemId) {
-  if(platform === 'CodeForces' || platform === 'ICPC') {
-    return problemId.replace('#', '');
-  }
-  if(platform === 'AtCoder') {
-    return problemId.split('@')[1].replace('#', '');
-  }
-  if(platform === 'CodeChef' || platform === 'TopCoder') {
-    return problemId.split('#')[1];
-  }
-  if(platform === 'Project Euler') {
-    return dynamodbUtils.removePrefixZeroes(problemId.split('#')[1]);
-  }
-}
-
 async function getProblems(platform, contestId) {
-  let problems;
-
   if(contestId) {
     const dbContestId = contestModule.inflateContestId(contestId);
-    problems =  await dynamodb.queryPrimaryKey(PROBLEM_TABLE, PROBLEM_PK,
+    let problems =  await dynamodb.queryPrimaryKey(PROBLEM_TABLE, PROBLEM_PK,
       'sk', platform, dbContestId, [
-        'sk', 'name'
+        'sk', 'name', 'problemCode'
       ]
     );
+    prettifyProblemIds(problems);
+    return problems;
   }
   else {
-    problems = await dynamodb.queryPartitionKey(PROBLEM_TABLE, PROBLEM_PK,
-      platform, true, [
-        'sk', 'name'
-      ]
-    );
+    const problemsString = await s3.getFile(cacheConstants.CACHE_NAME,
+      `${PROBLEM_CACHE_PATH}${platform}.json`);
+    return JSON.parse(problemsString);
   }
-
-  prettifyProblemIds(platform, problems);
-  return problems;
 }
 
 async function getProblemInfo(platform, problemId) {
@@ -93,7 +75,7 @@ async function getProblemInfo(platform, problemId) {
   const dbProblemId = inflateProblemId(problemId);
 
   const problemRows = await dynamodb.queryPrimaryKey(PROBLEM_TABLE, PROBLEM_PK,
-    'sk', platform, dbProblemId, [ 'name', 'level', 'rd' ]
+    'sk', platform, dbProblemId, [ 'name', 'level', 'rd', 'problemCode' ]
   );
 
   if(problemRows.length === 0) {
@@ -104,7 +86,7 @@ async function getProblemInfo(platform, problemId) {
   const problemRow = problemRows[0];
 
   let problemInfo = {
-    problemCode: getProblemCode(platform, problemId),
+    problemCode: problemRow.problemCode,
     problemName: problemRow.name,
     contestCode: contestInfo.code,
     contestName: contestInfo.name,
