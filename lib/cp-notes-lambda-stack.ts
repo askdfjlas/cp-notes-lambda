@@ -57,6 +57,11 @@ export class CpNotesLambdaStack extends cdk.Stack {
       tableName: 'counts'
     });
 
+    const commentsTable = new dynamodb.Table(this, 'comments', {
+      partitionKey: { name: 'commentId', type: dynamodb.AttributeType.STRING },
+      tableName: 'comments'
+    });
+
     // DDB GSIs
     const noteImportantAttributes = [ 'contestCode', 'contestName', 'platform',
                                       'problemCode', 'problemName', 'problemSk',
@@ -102,6 +107,13 @@ export class CpNotesLambdaStack extends cdk.Stack {
       nonKeyAttributes: noteImportantAttributes,
       projectionType: dynamodb.ProjectionType.INCLUDE
     });
+
+    commentsTable.addGlobalSecondaryIndex({
+      indexName: 'comments-common',
+      partitionKey: { name: 'commonIndexPk', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'commonIndexSk', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL
+    })
 
     // S3
     const cacheBucket = new s3.Bucket(this, 'cp-notes-cache', {
@@ -194,6 +206,14 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesTable.grantReadWriteData(editNoteLikeLambda);
     usersTable.grantReadWriteData(editNoteLikeLambda);
 
+    const getCommentsLambda = this.createDefaultNodeLambda('getComments');
+    notesTable.grantReadWriteData(getCommentsLambda);
+    commentsTable.grantReadWriteData(getCommentsLambda);
+
+    const addCommentLambda = this.createDefaultNodeLambda('addComment');
+    notesTable.grantReadWriteData(addCommentLambda);
+    commentsTable.grantReadWriteData(addCommentLambda);
+
     // Events
     const cacheUpdateUserListLambdaTarget = new targets.LambdaFunction(
       cacheUpdateUserListLambda
@@ -263,6 +283,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const notesResource = api.root.addResource('notes');
     const likesResource = api.root.addResource('likes');
     const noteLikesResource = likesResource.addResource('notes');
+    const commentsResource = api.root.addResource('comments');
 
     // APIG lambda integrations
     const getProblemsIntegration = new apigateway.LambdaIntegration(getProblemsLambda);
@@ -274,6 +295,8 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const editNoteIntegration = new apigateway.LambdaIntegration(editNoteLambda);
     const deleteNoteIntegration = new apigateway.LambdaIntegration(deleteNoteLambda);
     const editNoteLikeIntegration = new apigateway.LambdaIntegration(editNoteLikeLambda);
+    const getCommentsIntegration = new apigateway.LambdaIntegration(getCommentsLambda);
+    const addCommentIntegration = new apigateway.LambdaIntegration(addCommentLambda);
 
     // APIG methods
     problemsResource.addMethod('GET', getProblemsIntegration);
@@ -285,5 +308,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesResource.addMethod('PUT', editNoteIntegration);
     notesResource.addMethod('DELETE', deleteNoteIntegration);
     noteLikesResource.addMethod('PUT', editNoteLikeIntegration);
+    commentsResource.addMethod('GET', getCommentsIntegration);
+    commentsResource.addMethod('POST', addCommentIntegration);
   }
 }

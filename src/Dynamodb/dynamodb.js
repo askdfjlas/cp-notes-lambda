@@ -50,9 +50,11 @@ async function scanPromise(params) {
 }
 
 async function queryPartitionKey(tableName, pk, value, forward,
-                                 projectedAttributes, count) {
+                                 projectedAttributes, count=false,
+                                 indexName=null) {
   const params = {
     TableName: tableName,
+    IndexName: indexName,
     KeyConditionExpression: `${pk} = :val`,
     ExpressionAttributeValues: {
       ':val': {

@@ -3,6 +3,7 @@ const contestModule = require('./contest');
 const noteModule = require('./note');
 const likeModule = require('./like');
 const userModule = require('./user');
+const commentModule = require('./comment');
 const userPoolModule = require('./Cognito/userPool');
 
 // Too lazy to deal with CORS :) (should actually set an origin in the future)
@@ -31,6 +32,15 @@ function proxyClientError(err) {
   }
 
   throw err;
+}
+
+async function errorMiddleware(handler) {
+  try {
+    return await handler();
+  }
+  catch(err) {
+    return proxyClientError(err);
+  }
 }
 
 module.exports.getProblems = async function(event) {
@@ -184,4 +194,32 @@ module.exports.editNoteLike = async function(event) {
     username, noteAuthor, platform, problemId, likedStatus, tokenString
   );
   return proxyResponse('Success!');
+}
+
+module.exports.addComment = async function(event) {
+  return await errorMiddleware(async () => {
+    const body = JSON.parse(event.body);
+    const username = '' + body.username;
+    const noteAuthor = '' + body.noteAuthor;
+    const platform = '' + body.platform;
+    const problemId = '' + body.problemId;
+    const replyId = '' + body.replyId;
+    const content = '' + body.content;
+    const tokenString = event.headers['Authorization'];
+
+    await commentModule.addNoteComment(
+      username, noteAuthor, platform, problemId, replyId, content, tokenString
+    );
+    return proxyResponse('Success!');
+  });
+}
+
+module.exports.getComments = async function(event) {
+  return await errorMiddleware(async () => {
+    const noteAuthor = event.queryStringParameters.noteAuthor;
+    const platform = event.queryStringParameters.platform;
+    const problemId = event.queryStringParameters.problemId;
+
+    return await commentModule.getNoteComments(noteAuthor, platform, problemId);
+  });
 }

@@ -298,6 +298,15 @@ async function checkExistence(username, platform, problemId, forcePublished) {
     return rows.length > 0;
 }
 
+async function forceExistence(username, platform, problemId, forcePublished) {
+  const noteExists = await checkExistence(
+    username, platform, problemId, forcePublished
+  );
+  if(!noteExists) {
+    utils.throwCustomError(error400.NOTE_NOT_FOUND);
+  }
+}
+
 module.exports.getUserNotes = getUserNotes;
 module.exports.getNotesFilteredList = getNotesFilteredList;
 module.exports.getNoteInfo = getNoteInfo;
@@ -305,3 +314,4 @@ module.exports.addOrEditNote = addOrEditNote;
 module.exports.updateNoteLikeCount = updateNoteLikeCount;
 module.exports.deleteNote = deleteNote;
 module.exports.checkExistence = checkExistence;
+module.exports.forceExistence = forceExistence;
