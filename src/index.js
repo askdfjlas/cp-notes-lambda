@@ -36,7 +36,8 @@ function proxyClientError(err) {
 
 async function errorMiddleware(handler) {
   try {
-    return await handler();
+    const data = await handler();
+    return proxyResponse(data);
   }
   catch(err) {
     return proxyClientError(err);
@@ -203,14 +204,13 @@ module.exports.addComment = async function(event) {
     const noteAuthor = '' + body.noteAuthor;
     const platform = '' + body.platform;
     const problemId = '' + body.problemId;
-    const replyId = '' + body.replyId;
+    const replyId = body.replyId ? '' + body.replyId : null;
     const content = '' + body.content;
     const tokenString = event.headers['Authorization'];
 
-    await commentModule.addNoteComment(
+    return await commentModule.addNoteComment(
       username, noteAuthor, platform, problemId, replyId, content, tokenString
     );
-    return proxyResponse('Success!');
   });
 }
 

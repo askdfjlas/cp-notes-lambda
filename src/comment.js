@@ -40,11 +40,13 @@ async function addNoteComment(username, noteAuthor, platform, problemId,
 
     await dynamodb.insertValue(COMMENT_TABLE, COMMENT_PK, commentObject);
   }
+
+  return newCommentId;
 }
 
 async function getNoteComments(noteAuthor, platform, problemId) {
   await noteModule.forceExistence(noteAuthor, platform, problemId, true);
-  
+
   const commonIndexPk = getNoteCommonIndexPk(noteAuthor, platform, problemId);
   return await dynamodb.queryPartitionKey(
     COMMENT_TABLE, COMMENT_COMMON_PK, commonIndexPk, false, [
