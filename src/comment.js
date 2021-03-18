@@ -2,6 +2,7 @@ const COMMENT_TABLE = 'comments';
 const COMMENT_PK = 'commentId';
 const COMMENT_COMMON_INDEX = 'comments-common';
 const COMMENT_COMMON_PK = 'commonIndexPk';
+const COMMENT_COMMON_SK = 'commonIndexSk';
 
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('./Cognito/jwt');
@@ -17,30 +18,57 @@ function getNoteCommonIndexPk(noteAuthor, platform, problemId) {
 }
 
 async function addNoteComment(username, noteAuthor, platform, problemId,
-                              replyId, content, tokenString) {
+                              content, tokenString) {
   await jwt.verifyUser(username, tokenString);
   await noteModule.forceExistence(noteAuthor, platform, problemId, true);
 
   const newCommentId = uuidv4();
   const currentTime = (new Date()).toJSON();
 
-  if(replyId) {
+  const commentObject = {
+    [ COMMENT_COMMON_PK ]: getNoteCommonIndexPk(noteAuthor, platform, problemId),
+    [ COMMENT_COMMON_SK ]: `${currentTime}#${newCommentId}#Z`,
+    commentId: newCommentId,
+    creationTime: currentTime,
+    username: username,
+    content: content,
+    likeCount: 0
+  };
 
+  await dynamodb.insertValue(COMMENT_TABLE, COMMENT_PK, commentObject);
+  return newCommentId;
+}
+
+async function replyNoteComment(username, rootReplyId, replyId,
+                                content, tokenString) {
+  await jwt.verifyUser(username, tokenString);
+  const rootComment = await getCommentInfo(rootReplyId);
+  const replyComment = await getCommentInfo(replyId);
+
+  const replyCommentRoot = replyComment.rootReplyId || replyComment.commentId;
+  if(replyCommentRoot !== rootReplyId) {
+    utils.throwCustomError(error400.COMMENT_NOT_FOUND);
   }
-  else {
-    const commentObject = {
-      commentId: newCommentId,
-      creationTime: currentTime,
-      username: username,
-      content: content,
-      likeCount: 0,
-      commonIndexPk: getNoteCommonIndexPk(noteAuthor, platform, problemId),
-      commonIndexSk: `${currentTime}#${newCommentId}#Z`
-    };
 
-    await dynamodb.insertValue(COMMENT_TABLE, COMMENT_PK, commentObject);
-  }
+  const newCommentId = uuidv4();
+  const currentTime = (new Date()).toJSON();
+  const inverseTime = utils.getInverseTimestamp(currentTime);
+  const commonIndexSk =
+    `${rootComment.creationTime}#${rootComment.commentId}#${inverseTime}`;
 
+  const commentObject = {
+    [ COMMENT_COMMON_PK ]: rootComment[COMMENT_COMMON_PK],
+    [ COMMENT_COMMON_SK ]: commonIndexSk,
+    commentId: newCommentId,
+    creationTime: currentTime,
+    username: username,
+    content: content,
+    likeCount: 0,
+    rootReplyId: rootReplyId,
+    replyId: replyId
+  };
+
+  await dynamodb.insertValue(COMMENT_TABLE, COMMENT_PK, commentObject);
   return newCommentId;
 }
 
@@ -48,12 +76,43 @@ async function getNoteComments(noteAuthor, platform, problemId) {
   await noteModule.forceExistence(noteAuthor, platform, problemId, true);
 
   const commonIndexPk = getNoteCommonIndexPk(noteAuthor, platform, problemId);
-  return await dynamodb.queryPartitionKey(
-    COMMENT_TABLE, COMMENT_COMMON_PK, commonIndexPk, false, [
-      'commentId', 'creationTime', 'username', 'content', 'likeCount'
-    ], false, COMMENT_COMMON_INDEX
+  const projectedAttributes = [
+    'commentId', 'creationTime', 'username', 'content', 'likeCount',
+    'rootReplyId', 'replyId'
+  ];
+
+  const commentRows = await dynamodb.queryPartitionKey(
+    COMMENT_TABLE, COMMENT_COMMON_PK, commonIndexPk, false,
+    projectedAttributes, false, COMMENT_COMMON_INDEX
   );
+
+  let processedComments = [];
+  for(const comment of commentRows) {
+    if(comment.rootReplyId) {
+      processedComments[processedComments.length - 1].replies.push(comment);
+    }
+    else {
+      comment.replies = [];
+      processedComments.push(comment);
+    }
+  }
+
+  return processedComments;
+}
+
+async function getCommentInfo(commentId) {
+  const commentRows = await dynamodb.queryPartitionKey(
+    COMMENT_TABLE, COMMENT_PK, commentId
+  );
+
+  if(commentRows.length === 0) {
+    utils.throwCustomError(error400.COMMENT_NOT_FOUND);
+  }
+
+  return commentRows[0];
 }
 
 module.exports.addNoteComment = addNoteComment;
+module.exports.replyNoteComment = replyNoteComment;
 module.exports.getNoteComments = getNoteComments;
+module.exports.getCommentInfo = getCommentInfo;

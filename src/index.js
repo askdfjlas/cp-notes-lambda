@@ -204,13 +204,21 @@ module.exports.addComment = async function(event) {
     const noteAuthor = '' + body.noteAuthor;
     const platform = '' + body.platform;
     const problemId = '' + body.problemId;
+    const rootReplyId = body.rootReplyId ? '' + body.rootReplyId : null;
     const replyId = body.replyId ? '' + body.replyId : null;
     const content = '' + body.content;
     const tokenString = event.headers['Authorization'];
 
-    return await commentModule.addNoteComment(
-      username, noteAuthor, platform, problemId, replyId, content, tokenString
-    );
+    if(rootReplyId) {
+      return await commentModule.replyNoteComment(
+        username, rootReplyId, replyId, content, tokenString
+      );
+    }
+    else {
+      return await commentModule.addNoteComment(
+        username, noteAuthor, platform, problemId, content, tokenString
+      );
+    }
   });
 }
 
