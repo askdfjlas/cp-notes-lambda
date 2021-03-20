@@ -1,7 +1,7 @@
 const USER_TABLE = 'users';
 const USER_PK = 'username';
 const AVATAR_PREFIX = 'avatar/';
-const AVATAR_DEFAULT_EXTENSION = 'jpg';
+const ALLOWED_AVATAR_EXTENSIONS = ['jpg', 'jpeg', 'png'];
 
 const s3 = require('./S3/s3');
 const dynamodb = require('./Dynamodb/dynamodb');
@@ -35,14 +35,10 @@ async function getProfile(username, tokenString) {
   }
 
   if(userTableRow.avatarExtension) {
-    [ userProfile.avatarData, userProfile.avatarExtension ] = await getUserAvatar(
-      username, userTableRow.avatarExtension
-    );
+    userProfile.avatarData = await getUserAvatar(username);
   }
   else {
-    [ userProfile.avatarData, userProfile.avatarExtension ] = await getUserAvatar(
-      '!', AVATAR_DEFAULT_EXTENSION
-    );
+    userProfile.avatarData = await getUserAvatar('!');
   }
 
   return userProfile;
@@ -54,16 +50,22 @@ async function getUsers(page) {
   return JSON.parse(fileContent);
 }
 
-async function getUserAvatar(username, extension) {
-  const avatarFilename = `${AVATAR_PREFIX}${username}.${extension}`;
-  const avatarData = await s3.getFile(
-    cacheConstants.CACHE_NAME, avatarFilename, true
-  );
-  return [ avatarData, extension ];
+async function getUserAvatar(username) {
+  const avatarFilename = `${AVATAR_PREFIX}${username}.txt`;
+  return await s3.getFile(cacheConstants.CACHE_NAME, avatarFilename);
 }
 
-async function updateUserAvatar(username, avatarData, extension) {
-  if(extension !== 'png' && extension !== 'jpg') {
+async function updateUserAvatar(username, avatarData) {
+  let extension = null;
+  for(const allowedExtension of ALLOWED_AVATAR_EXTENSIONS) {
+    const neededPrefixString = `data:image/${allowedExtension};base64,`;
+    if(avatarData.substring(0, neededPrefixString.length) === neededPrefixString) {
+      extension = allowedExtension;
+      break;
+    }
+  }
+
+  if(!extension) {
     utils.throwCustomError(error400.BAD_FILE_TYPE);
   }
 
@@ -75,17 +77,14 @@ async function updateUserAvatar(username, avatarData, extension) {
     avatarExtension: extension
   });
 
-  const avatarFilename = `${AVATAR_PREFIX}${username}.${extension}`;
-  avatarData = Buffer.from(avatarData, 'base64');
-
-  await s3.writeFile(cacheConstants.CACHE_NAME, avatarFilename, avatarData,
-    'base64', `image/${extension}`);
+  const avatarFilename = `${AVATAR_PREFIX}${username}.txt`;
+  await s3.writeFile(cacheConstants.CACHE_NAME, avatarFilename, avatarData);
 }
 
-async function updateProfile(username, avatarData, extension, tokenString) {
+async function updateProfile(username, avatarData, tokenString) {
   await jwt.verifyUser(username, tokenString);
   if(avatarData) {
-    await updateUserAvatar(username, avatarData, extension);
+    await updateUserAvatar(username, avatarData);
   }
 }
 

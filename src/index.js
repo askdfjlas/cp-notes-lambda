@@ -91,19 +91,15 @@ module.exports.getUsers = async function(event) {
 }
 
 module.exports.updateUserProfile = async function(event) {
-  const body = JSON.parse(event.body);
-  const username = '' + body.username;
-  const avatarData = '' + body.avatarData;
-  const avatarExtension = '' + body.avatarExtension;
-  const tokenString = event.headers['Authorization'];
+  return await errorMiddleware(async () => {
+    const body = JSON.parse(event.body);
+    const username = '' + body.username;
+    const avatarData = '' + body.avatarData;
+    const tokenString = event.headers['Authorization'];
 
-  try {
-    await userModule.updateProfile(username, avatarData, avatarExtension, tokenString);
+    await userModule.updateProfile(username, avatarData, tokenString);
     return proxyResponse('Success!');
-  }
-  catch(err) {
-    return proxyClientError(err);
-  }
+  });
 }
 
 async function addOrEditNote(event, overwrite) {

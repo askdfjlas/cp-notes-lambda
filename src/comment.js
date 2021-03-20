@@ -45,7 +45,7 @@ async function replyNoteComment(username, rootReplyId, replyId,
   const rootComment = await getCommentInfo(rootReplyId);
   const replyComment = await getCommentInfo(replyId);
 
-  const replyCommentRoot = replyComment.rootReplyId || replyComment.commentId;
+  const replyCommentRoot = replyComment.rootReplyId || replyId;
   if(replyCommentRoot !== rootReplyId) {
     utils.throwCustomError(error400.COMMENT_NOT_FOUND);
   }
@@ -53,8 +53,8 @@ async function replyNoteComment(username, rootReplyId, replyId,
   const newCommentId = uuidv4();
   const currentTime = (new Date()).toJSON();
   const inverseTime = utils.getInverseTimestamp(currentTime);
-  const commonIndexSk =
-    `${rootComment.creationTime}#${rootComment.commentId}#${inverseTime}`;
+  const commonIndexSk = 
+    `${rootComment.creationTime}#${rootReplyId}#${inverseTime}`;
 
   const commentObject = {
     [ COMMENT_COMMON_PK ]: rootComment[COMMENT_COMMON_PK],
