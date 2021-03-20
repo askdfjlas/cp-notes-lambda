@@ -12,13 +12,6 @@ const error400 = require('./error400');
 const utils = require('./utils');
 
 async function getProfile(username, basicInfoOnly, tokenString) {
-  try {
-    var requesterUsername = await jwt.verify(tokenString);
-  }
-  catch(err) {
-    var requesterUsername = null;
-  }
-
   const tableData = await dynamodb.queryPartitionKey(USER_TABLE, USER_PK, username);
   if(tableData.length === 0) {
     utils.throwCustomError(error400.USER_NOT_FOUND);
@@ -28,6 +21,15 @@ async function getProfile(username, basicInfoOnly, tokenString) {
   let userProfile = { username: username };
   if(!basicInfoOnly) {
     userProfile.contribution = userTableRow.contribution;
+
+    let requesterUsername = null;
+    try {
+      requesterUsername = await jwt.verify(tokenString);
+    }
+    catch(err) {
+      /* User is not signed in */
+    }
+    
     if(requesterUsername === username) {
       userProfile.email = userTableRow.email
     }
