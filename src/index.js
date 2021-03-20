@@ -67,13 +67,14 @@ module.exports.getContests = async function(event) {
 
 module.exports.getUsers = async function(event) {
   const username = event.queryStringParameters.username;
+  const basicInfoOnly = event.queryStringParameters.basicInfoOnly === 'true';
   const searchTerm = event.queryStringParameters.searchTerm;
   const page = event.queryStringParameters.page || 1;
   const tokenString = event.headers['Authorization'];
 
   try {
     if(username) {
-      const profile = await userModule.getProfile(username, tokenString);
+      const profile = await userModule.getProfile(username, basicInfoOnly, tokenString);
       return proxyResponse(profile);
     }
     else if(searchTerm) {

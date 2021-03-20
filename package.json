@@ -31,6 +31,7 @@
     "@aws-cdk/core": "1.63.0",
     "aws-sdk": "^2.757.0",
     "node-notifier": ">=8.01",
-    "source-map-support": "^0.5.16"
+    "source-map-support": "^0.5.16",
+    "elliptic": ">=6.5.4"
   }
 }

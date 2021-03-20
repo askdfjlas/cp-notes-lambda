@@ -11,7 +11,7 @@ const userPool = require('./Cognito/userPool');
 const error400 = require('./error400');
 const utils = require('./utils');
 
-async function getProfile(username, tokenString) {
+async function getProfile(username, basicInfoOnly, tokenString) {
   try {
     var requesterUsername = await jwt.verify(tokenString);
   }
@@ -25,13 +25,12 @@ async function getProfile(username, tokenString) {
   }
   const userTableRow = tableData[0];
 
-  let userProfile = {
-    username: username,
-    contribution: userTableRow.contribution
-  };
-
-  if(requesterUsername === username) {
-    userProfile.email = userTableRow.email
+  let userProfile = { username: username };
+  if(!basicInfoOnly) {
+    userProfile.contribution = userTableRow.contribution;
+    if(requesterUsername === username) {
+      userProfile.email = userTableRow.email
+    }
   }
 
   if(userTableRow.avatarExtension) {
