@@ -53,7 +53,7 @@ async function replyNoteComment(username, rootReplyId, replyId,
   const newCommentId = uuidv4();
   const currentTime = (new Date()).toJSON();
   const inverseTime = utils.getInverseTimestamp(currentTime);
-  const commonIndexSk = 
+  const commonIndexSk =
     `${rootComment.creationTime}#${rootReplyId}#${inverseTime}`;
 
   const commentObject = {
@@ -112,7 +112,24 @@ async function getCommentInfo(commentId) {
   return commentRows[0];
 }
 
+async function deleteComment(commentId, tokenString) {
+  const comment = getCommentInfo(commentId);
+  await jwt.verifyUser(comment.username, tokenString);
+
+  const commentKey = {
+    [ COMMENT_PK ]: commentId
+  };
+
+  const setUpdates = {
+    content: null,
+    deleted: true
+  };
+
+  await dynamodb.updateValue(COMMENT_TABLE, commentKey, null, setUpdates, true);
+}
+
 module.exports.addNoteComment = addNoteComment;
 module.exports.replyNoteComment = replyNoteComment;
 module.exports.getNoteComments = getNoteComments;
 module.exports.getCommentInfo = getCommentInfo;
+module.exports.deleteComment = deleteComment;

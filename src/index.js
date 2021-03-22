@@ -228,3 +228,14 @@ module.exports.getComments = async function(event) {
     return await commentModule.getNoteComments(noteAuthor, platform, problemId);
   });
 }
+
+module.exports.deleteComment = async function(event) {
+  return await errorMiddleware(async () => {
+    const body = JSON.parse(event.body);
+    const commentId = '' + body.commentId;
+    const tokenString = event.headers['Authorization'];
+
+    await commentModule.deleteComment(commentId, tokenString);
+    return 'Success!';
+  });
+}

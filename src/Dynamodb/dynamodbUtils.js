@@ -94,6 +94,7 @@ function replaceAttributeValue(attribute) {
 function generateUpdateExpression(additionUpdates={}, setUpdates={}) {
   let additionUpdateFragments = [];
   let setUpdateFragments = [];
+  let removalUpdateFragments = [];
   let expressionAttributeValues = {};
   let expressionAttributeNames = {};
 
@@ -110,11 +111,17 @@ function generateUpdateExpression(additionUpdates={}, setUpdates={}) {
   for(let attribute in setUpdates) {
     const oldAttribute = attribute;
     attribute = replaceAttributeValue(attribute);
-    setUpdateFragments.push(`#${attribute} = :${attribute}`);
 
-    expressionAttributeValues[`:${attribute}`] = createDynamodbObjectFromValue(
-      setUpdates[oldAttribute]
-    );
+    if(setUpdates[oldAttribute] !== null) {
+      setUpdateFragments.push(`#${attribute} = :${attribute}`);
+      expressionAttributeValues[`:${attribute}`] = createDynamodbObjectFromValue(
+        setUpdates[oldAttribute]
+      );
+    }
+    else {
+      removalUpdateFragments.push(`#${attribute}`);
+    }
+
     expressionAttributeNames[`#${attribute}`] = oldAttribute;
   }
 
@@ -124,6 +131,9 @@ function generateUpdateExpression(additionUpdates={}, setUpdates={}) {
   }
   if(setUpdateFragments.length > 0) {
     updateExpressions.push('SET ' + setUpdateFragments.join(','));
+  }
+  if(removalUpdateFragments.length > 0) {
+    updateExpressions.push('REMOVE ' + removalUpdateFragments.join(','));
   }
 
   return [ updateExpressions.join(' '), expressionAttributeValues,
