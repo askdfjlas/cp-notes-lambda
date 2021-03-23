@@ -113,7 +113,7 @@ async function getCommentInfo(commentId) {
 }
 
 async function deleteComment(commentId, tokenString) {
-  const comment = getCommentInfo(commentId);
+  const comment = await getCommentInfo(commentId);
   await jwt.verifyUser(comment.username, tokenString);
 
   const commentKey = {
