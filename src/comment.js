@@ -77,8 +77,8 @@ async function getNoteComments(noteAuthor, platform, problemId) {
 
   const commonIndexPk = getNoteCommonIndexPk(noteAuthor, platform, problemId);
   const projectedAttributes = [
-    'commentId', 'creationTime', 'username', 'content', 'likeCount',
-    'rootReplyId', 'replyId'
+    'commentId', 'creationTime', 'editedTime', 'username', 'content',
+    'likeCount', 'rootReplyId', 'replyId'
   ];
 
   const commentRows = await dynamodb.queryPartitionKey(
@@ -112,6 +112,26 @@ async function getCommentInfo(commentId) {
   return commentRows[0];
 }
 
+async function editComment(commentId, content, tokenString) {
+  const comment = await getCommentInfo(commentId);
+  if(comment.deleted) {
+    utils.throwCustomError(error400.COMMENT_NOT_FOUND);
+  }
+
+  await jwt.verifyUser(comment.username, tokenString);
+
+  const commentKey = {
+    [ COMMENT_PK ]: commentId
+  };
+
+  const setUpdates = {
+    content: content,
+    editedTime: (new Date()).toJSON()
+  };
+
+  await dynamodb.updateValue(COMMENT_TABLE, commentKey, null, setUpdates, true);
+}
+
 async function deleteComment(commentId, tokenString) {
   const comment = await getCommentInfo(commentId);
   await jwt.verifyUser(comment.username, tokenString);
@@ -132,4 +152,5 @@ module.exports.addNoteComment = addNoteComment;
 module.exports.replyNoteComment = replyNoteComment;
 module.exports.getNoteComments = getNoteComments;
 module.exports.getCommentInfo = getCommentInfo;
+module.exports.editComment = editComment;
 module.exports.deleteComment = deleteComment;

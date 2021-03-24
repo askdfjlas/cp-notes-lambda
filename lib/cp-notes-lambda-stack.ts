@@ -214,6 +214,9 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesTable.grantReadWriteData(addCommentLambda);
     commentsTable.grantReadWriteData(addCommentLambda);
 
+    const editCommentLambda = this.createDefaultNodeLambda('editComment');
+    commentsTable.grantReadWriteData(editCommentLambda);
+
     const deleteCommentLambda = this.createDefaultNodeLambda('deleteComment');
     commentsTable.grantReadWriteData(deleteCommentLambda);
 
@@ -300,6 +303,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const editNoteLikeIntegration = new apigateway.LambdaIntegration(editNoteLikeLambda);
     const getCommentsIntegration = new apigateway.LambdaIntegration(getCommentsLambda);
     const addCommentIntegration = new apigateway.LambdaIntegration(addCommentLambda);
+    const editCommentIntegration = new apigateway.LambdaIntegration(editCommentLambda);
     const deleteCommentIntegration = new apigateway.LambdaIntegration(deleteCommentLambda);
 
     // APIG methods
@@ -314,6 +318,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     noteLikesResource.addMethod('PUT', editNoteLikeIntegration);
     commentsResource.addMethod('GET', getCommentsIntegration);
     commentsResource.addMethod('POST', addCommentIntegration);
+    commentsResource.addMethod('PUT', editCommentIntegration);
     commentsResource.addMethod('DELETE', deleteCommentIntegration);
   }
 }

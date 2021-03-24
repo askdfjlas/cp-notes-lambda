@@ -229,6 +229,18 @@ module.exports.getComments = async function(event) {
   });
 }
 
+module.exports.editComment = async function(event) {
+  return await errorMiddleware(async () => {
+    const body = JSON.parse(event.body);
+    const commentId = '' + body.commentId;
+    const content = '' + body.content;
+    const tokenString = event.headers['Authorization'];
+
+    await commentModule.editComment(commentId, content, tokenString);
+    return 'Success!';
+  });
+}
+
 module.exports.deleteComment = async function(event) {
   return await errorMiddleware(async () => {
     const body = JSON.parse(event.body);
