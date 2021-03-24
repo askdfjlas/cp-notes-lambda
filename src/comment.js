@@ -9,12 +9,25 @@ const jwt = require('./Cognito/jwt');
 const problemModule = require('./problem');
 const noteModule = require('./note');
 const dynamodb = require('./Dynamodb/dynamodb');
+const dynamodbUtils = require('./Dynamodb/dynamodbUtils');
 const utils = require('./utils');
 const error400 = require('./error400');
 
 function getNoteCommonIndexPk(noteAuthor, platform, problemId) {
   const dbProblemId = problemModule.inflateProblemId(problemId);
   return `NOTE#${noteAuthor}#${platform}#${dbProblemId}`;
+}
+
+async function updateEntityActivityTime(commonIndexPk) {
+  const terms = commonIndexPk.split('#');
+  if(terms.length === 5) {
+    const [ entityType, username, platform, contestCode, problemCode ] = terms;
+    if(entityType === 'NOTE') {
+      const shortContestCode = dynamodbUtils.removePrefixZeroes(contestCode);
+      const problemId = shortContestCode + '#' + problemCode;
+      await noteModule.updateNoteActivityTime(username, platform, problemId);
+    }
+  }
 }
 
 async function addNoteComment(username, noteAuthor, platform, problemId,
@@ -36,6 +49,8 @@ async function addNoteComment(username, noteAuthor, platform, problemId,
   };
 
   await dynamodb.insertValue(COMMENT_TABLE, COMMENT_PK, commentObject);
+  await updateEntityActivityTime(commentObject[COMMENT_COMMON_PK]);
+
   return newCommentId;
 }
 
@@ -69,6 +84,8 @@ async function replyNoteComment(username, rootReplyId, replyId,
   };
 
   await dynamodb.insertValue(COMMENT_TABLE, COMMENT_PK, commentObject);
+  await updateEntityActivityTime(commentObject[COMMENT_COMMON_PK]);
+
   return newCommentId;
 }
 
@@ -129,7 +146,10 @@ async function editComment(commentId, content, tokenString) {
     editedTime: (new Date()).toJSON()
   };
 
-  await dynamodb.updateValue(COMMENT_TABLE, commentKey, null, setUpdates, true);
+  await dynamodb.updateValue(COMMENT_TABLE, commentKey, null, setUpdates, true,
+    ' AND attribute_not_exists(deleted)'
+  );
+  await updateEntityActivityTime(comment[COMMENT_COMMON_PK]);
 }
 
 async function deleteComment(commentId, tokenString) {
@@ -146,6 +166,7 @@ async function deleteComment(commentId, tokenString) {
   };
 
   await dynamodb.updateValue(COMMENT_TABLE, commentKey, null, setUpdates, true);
+  await updateEntityActivityTime(comment[COMMENT_COMMON_PK]);
 }
 
 module.exports.addNoteComment = addNoteComment;

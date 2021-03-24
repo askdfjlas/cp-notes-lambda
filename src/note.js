@@ -22,6 +22,11 @@ const jwt = require('./Cognito/jwt');
 const utils = require('./utils');
 const error400 = require('./error400');
 
+function getDbNoteId(platform, problemId) {
+  const dbProblemId = problemModule.inflateProblemId(problemId);
+  return `${platform}#${dbProblemId}`;
+}
+
 async function getUserNotes(username) {
   const projectedAttributes = [
     'username', 'published', 'title', 'platform', 'contestName', 'contestCode',
@@ -94,8 +99,7 @@ async function getNotesFilteredList(platform, contestId, problemId, recent, page
 }
 
 async function getNoteInfo(username, platform, problemId, tokenString, forcePublished) {
-  const dbProblemId = problemModule.inflateProblemId(problemId);
-  const dbNoteId = `${platform}#${dbProblemId}`;
+  const dbNoteId = getDbNoteId(platform, problemId);
 
   const noteRows = await dynamodb.queryPrimaryKey(
     NOTE_TABLE, NOTE_PK, 'sk', username, dbNoteId, null, true
@@ -203,7 +207,7 @@ async function addOrEditNote(username, platform, problemId, title, solved,
   const platformIndexPk = `${publishedNumber}#${platform}`;
   const contestIndexPk = `${publishedNumber}#${platform}#${dbContestId}`;
   const problemIndexPk = `${publishedNumber}#${platform}#${dbProblemId}`;
-  const dbNoteId = `${platform}#${dbProblemId}`;
+  const dbNoteId = getDbNoteId(platform, problemId);
   const currentTime = (new Date()).toJSON();
 
   const noteDynamicAttributes = {
@@ -239,8 +243,7 @@ async function addOrEditNote(username, platform, problemId, title, solved,
 }
 
 async function updateNoteLikeCount(noteAuthor, platform, problemId, increment) {
-  const dbProblemId = problemModule.inflateProblemId(problemId);
-  const dbNoteId = `${platform}#${dbProblemId}`;
+  const dbNoteId = getDbNoteId(platform, problemId);
 
   const noteKey = {
     [ NOTE_PK ]: noteAuthor,
@@ -264,9 +267,7 @@ async function updateNoteLikeCount(noteAuthor, platform, problemId, increment) {
 
 async function deleteNote(username, platform, problemId, tokenString) {
   await jwt.verifyUser(username, tokenString);
-
-  const dbProblemId = problemModule.inflateProblemId(problemId);
-  const dbNoteId = `${platform}#${dbProblemId}`;
+  const dbNoteId = getDbNoteId(platform, problemId);
 
   const oldNoteObject = await dynamodb.deletePrimaryKey(
     NOTE_TABLE, NOTE_PK, 'sk', username, dbNoteId
@@ -284,9 +285,25 @@ async function deleteNote(username, platform, problemId, tokenString) {
   await likeModule.deleteNoteLikes(username, platform, problemId);
 }
 
+async function updateNoteActivityTime(username, platform, problemId) {
+  const dbNoteId = getDbNoteId(platform, problemId);
+
+  const noteKey = {
+    [ NOTE_PK ]: username,
+    sk: dbNoteId
+  };
+
+  const setUpdates = {
+    activityTime: (new Date()).toJSON()
+  };
+
+  await dynamodb.updateValue(
+    NOTE_TABLE, noteKey, null, setUpdates, true
+  );
+}
+
 async function checkExistence(username, platform, problemId, forcePublished) {
-  const dbProblemId = problemModule.inflateProblemId(problemId);
-  const dbNoteId = `${platform}#${dbProblemId}`;
+  const dbNoteId = getDbNoteId(platform, problemId);
 
   const rows = await dynamodb.queryPrimaryKey(
     NOTE_TABLE, NOTE_PK, 'sk', username, dbNoteId, null, true
@@ -313,5 +330,6 @@ module.exports.getNoteInfo = getNoteInfo;
 module.exports.addOrEditNote = addOrEditNote;
 module.exports.updateNoteLikeCount = updateNoteLikeCount;
 module.exports.deleteNote = deleteNote;
+module.exports.updateNoteActivityTime = updateNoteActivityTime;
 module.exports.checkExistence = checkExistence;
 module.exports.forceExistence = forceExistence;

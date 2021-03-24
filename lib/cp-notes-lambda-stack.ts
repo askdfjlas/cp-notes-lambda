@@ -215,9 +215,11 @@ export class CpNotesLambdaStack extends cdk.Stack {
     commentsTable.grantReadWriteData(addCommentLambda);
 
     const editCommentLambda = this.createDefaultNodeLambda('editComment');
+    notesTable.grantReadWriteData(editCommentLambda);
     commentsTable.grantReadWriteData(editCommentLambda);
 
     const deleteCommentLambda = this.createDefaultNodeLambda('deleteComment');
+    notesTable.grantReadWriteData(deleteCommentLambda);
     commentsTable.grantReadWriteData(deleteCommentLambda);
 
     // Events

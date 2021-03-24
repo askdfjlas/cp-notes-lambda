@@ -207,7 +207,7 @@ async function insertValue(tableName, pk, valueObject, overwrite) {
 }
 
 async function updateValue(tableName, itemKey, additionUpdates, setUpdates,
-                           forceExistence=false) {
+                           forceExistence=false, additionalConditions='') {
   const [ updateExpression, expressionAttributeValues, expressionAttributeNames ] =
     dynamodbUtils.generateUpdateExpression(additionUpdates, setUpdates);
 
@@ -223,6 +223,9 @@ async function updateValue(tableName, itemKey, additionUpdates, setUpdates,
   if(forceExistence) {
     const arbitraryKey = Object.keys(itemKey)[0];
     params.ConditionExpression = `attribute_exists(${arbitraryKey})`;
+    if(additionalConditions) {
+      params.ConditionExpression += ' ' + additionalConditions;
+    }
   }
 
   try {
