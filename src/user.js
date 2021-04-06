@@ -3,11 +3,14 @@ const USER_PK = 'username';
 const AVATAR_PREFIX = 'avatar/';
 const ALLOWED_AVATAR_EXTENSIONS = ['jpg', 'jpeg', 'png'];
 
+const { v4: uuid } = require('uuid');
 const s3 = require('./S3/s3');
 const dynamodb = require('./Dynamodb/dynamodb');
 const cacheConstants = require('./S3/cacheConstants');
 const jwt = require('./Cognito/jwt');
 const userPool = require('./Cognito/userPool');
+const codeforces = require('./codeforces');
+const problemModule = require('./problem');
 const error400 = require('./error400');
 const utils = require('./utils');
 
@@ -29,7 +32,7 @@ async function getProfile(username, basicInfoOnly, tokenString) {
     catch(err) {
       /* User is not signed in */
     }
-    
+
     if(requesterUsername === username) {
       userProfile.email = userTableRow.email
     }
@@ -99,9 +102,41 @@ async function updateContribution(username, increment) {
   });
 }
 
+async function beginCfVerification(username, authCfUsername, tokenString) {
+  await jwt.verifyUser(username, tokenString);
+  await codeforces.getUserInfo(authCfUsername);
+
+  const authId = uuid().split('-').join('n').toUpperCase();
+  const authProblemInfo = await problemModule.getRandomEasyProblem('CodeForces');
+
+  const userKey = {
+    [ USER_PK ]: username
+  };
+
+  const userUpdates = {
+    authId: authId,
+    authCfUsername: authCfUsername,
+    authProblemCode: authProblemInfo.problemCode
+  };
+
+  const userUpdated = await dynamodb.updateValue(USER_TABLE, userKey, null,
+    userUpdates, true, ' AND attribute_not_exists(cfUsername)'
+  );
+
+  if(!userUpdated) {
+    utils.throwCustomError(error400.ALREADY_LINKED);
+  }
+
+  return {
+    authId: authId,
+    authProblemInfo: authProblemInfo
+  };
+}
+
 module.exports.getProfile = getProfile;
 module.exports.getUsers = getUsers;
 module.exports.getUserAvatar = getUserAvatar;
 module.exports.updateProfile = updateProfile;
 module.exports.updateUserAvatar = updateUserAvatar;
 module.exports.updateContribution = updateContribution;
+module.exports.beginCfVerification = beginCfVerification;

@@ -146,9 +146,14 @@ async function editComment(commentId, content, tokenString) {
     editedTime: (new Date()).toJSON()
   };
 
-  await dynamodb.updateValue(COMMENT_TABLE, commentKey, null, setUpdates, true,
-    ' AND attribute_not_exists(deleted)'
+  const commentEdited = await dynamodb.updateValue(COMMENT_TABLE, commentKey,
+    null, setUpdates, true, ' AND attribute_not_exists(deleted)'
   );
+
+  if(!commentEdited) {
+    utils.throwCustomError(error400.COMMENT_NOT_FOUND);
+  }
+
   await updateEntityActivityTime(comment[COMMENT_COMMON_PK]);
 }
 

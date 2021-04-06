@@ -6,7 +6,8 @@ const userModule = require('./user');
 const commentModule = require('./comment');
 const userPoolModule = require('./Cognito/userPool');
 
-// Too lazy to deal with CORS :) (should actually set an origin in the future)
+/* Wildcard is fine for the beta endpoint, should be 'https://cp-notes.com' for
+the production endpoint */
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
 };
@@ -249,5 +250,18 @@ module.exports.deleteComment = async function(event) {
 
     await commentModule.deleteComment(commentId, tokenString);
     return 'Success!';
+  });
+}
+
+module.exports.verifyCfUsername = async function(event) {
+  return await errorMiddleware(async () => {
+    const body = JSON.parse(event.body);
+    const username = '' + body.username;
+    const authCfUsername = '' + body.authCfUsername;
+    const tokenString = event.headers['Authorization'];
+
+    return await userModule.beginCfVerification(
+      username, authCfUsername, tokenString
+    );
   });
 }

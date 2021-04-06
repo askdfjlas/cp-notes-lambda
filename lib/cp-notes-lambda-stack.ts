@@ -222,6 +222,11 @@ export class CpNotesLambdaStack extends cdk.Stack {
     notesTable.grantReadWriteData(deleteCommentLambda);
     commentsTable.grantReadWriteData(deleteCommentLambda);
 
+    const verifyCfUsernameLambda = this.createDefaultNodeLambda('verifyCfUsername');
+    cacheBucket.grantReadWrite(verifyCfUsernameLambda);
+    problemsTable.grantReadWriteData(verifyCfUsernameLambda);
+    usersTable.grantReadWriteData(verifyCfUsernameLambda);
+
     // Events
     const cacheUpdateUserListLambdaTarget = new targets.LambdaFunction(
       cacheUpdateUserListLambda
@@ -288,6 +293,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const problemsResource = api.root.addResource('problems');
     const contestsResource = api.root.addResource('contests');
     const usersResource = api.root.addResource('users');
+    const linkUserResource = usersResource.addResource('link');
     const notesResource = api.root.addResource('notes');
     const likesResource = api.root.addResource('likes');
     const noteLikesResource = likesResource.addResource('notes');
@@ -307,6 +313,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     const addCommentIntegration = new apigateway.LambdaIntegration(addCommentLambda);
     const editCommentIntegration = new apigateway.LambdaIntegration(editCommentLambda);
     const deleteCommentIntegration = new apigateway.LambdaIntegration(deleteCommentLambda);
+    const verifyCfUsernameIntegration = new apigateway.LambdaIntegration(verifyCfUsernameLambda);
 
     // APIG methods
     problemsResource.addMethod('GET', getProblemsIntegration);
@@ -322,5 +329,6 @@ export class CpNotesLambdaStack extends cdk.Stack {
     commentsResource.addMethod('POST', addCommentIntegration);
     commentsResource.addMethod('PUT', editCommentIntegration);
     commentsResource.addMethod('DELETE', deleteCommentIntegration);
+    linkUserResource.addMethod('PUT', verifyCfUsernameIntegration);
   }
 }
