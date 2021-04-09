@@ -5,8 +5,24 @@ const utils = require('./utils');
 const USER_INFO_ENDPOINT = 'https://codeforces.com/api/user.info?handles=';
 const MAX_RETRIES = 3;
 
+function isUsernameValid(username) {
+  for(const char of username) {
+    const isLowerCaseAlpha = (char >= 'a' && char <= 'z');
+    const isUpperCaseAlpha = (char >= 'A' && char <= 'A');
+    const isNumber = (char >= '0' && char <= '9');
+
+    if(isLowerCaseAlpha || isUpperCaseAlpha || isNumber) continue;
+
+    if(char !== '_' && char !== '-') {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 async function getUserInfo(username) {
-  if(username.includes(';')) {
+  if(!isUsernameValid(username)) {
     utils.throwCustomError(error400.USER_NOT_FOUND);
   }
 

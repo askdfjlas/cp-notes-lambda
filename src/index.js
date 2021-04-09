@@ -257,11 +257,19 @@ module.exports.verifyCfUsername = async function(event) {
   return await errorMiddleware(async () => {
     const body = JSON.parse(event.body);
     const username = '' + body.username;
+    const authId = '' + body.authId;
     const authCfUsername = '' + body.authCfUsername;
     const tokenString = event.headers['Authorization'];
 
-    return await userModule.beginCfVerification(
-      username, authCfUsername, tokenString
-    );
+    if(body.authId) {
+      await userModule.endCfVerification(
+        username, authId, authCfUsername, tokenString
+      );
+    }
+    else {
+      return await userModule.beginCfVerification(
+        username, authCfUsername, tokenString
+      );
+    }
   });
 }

@@ -10,7 +10,6 @@ const cacheConstants = require('./S3/cacheConstants');
 const jwt = require('./Cognito/jwt');
 const userPool = require('./Cognito/userPool');
 const codeforces = require('./codeforces');
-const problemModule = require('./problem');
 const error400 = require('./error400');
 const utils = require('./utils');
 
@@ -21,7 +20,16 @@ async function getProfile(username, basicInfoOnly, tokenString) {
   }
   const userTableRow = tableData[0];
 
-  let userProfile = { username: username };
+  let userProfile = {
+    username: username
+  };
+
+  if(userTableRow.cfUsername) {
+    userProfile.cfUsername = userTableRow.cfUsername;
+    userProfile.cfRating = userTableRow.cfRating;
+    userProfile.cfRank = userTableRow.cfRank;
+  }
+
   if(!basicInfoOnly) {
     userProfile.contribution = userTableRow.contribution;
 
@@ -107,7 +115,6 @@ async function beginCfVerification(username, authCfUsername, tokenString) {
   await codeforces.getUserInfo(authCfUsername);
 
   const authId = uuid().split('-').join('n').toUpperCase();
-  const authProblemInfo = await problemModule.getRandomEasyProblem('CodeForces');
 
   const userKey = {
     [ USER_PK ]: username
@@ -115,8 +122,7 @@ async function beginCfVerification(username, authCfUsername, tokenString) {
 
   const userUpdates = {
     authId: authId,
-    authCfUsername: authCfUsername,
-    authProblemCode: authProblemInfo.problemCode
+    authCfUsername: authCfUsername
   };
 
   const userUpdated = await dynamodb.updateValue(USER_TABLE, userKey, null,
@@ -127,10 +133,45 @@ async function beginCfVerification(username, authCfUsername, tokenString) {
     utils.throwCustomError(error400.ALREADY_LINKED);
   }
 
-  return {
-    authId: authId,
-    authProblemInfo: authProblemInfo
+  return authId;
+}
+
+async function endCfVerification(username, authId, authCfUsername, tokenString) {
+  await jwt.verifyUser(username, tokenString);
+  const cfUserInfo = await codeforces.getUserInfo(authCfUsername);
+
+  /* It is imperative that this is the same exact string which the frontend
+     tells the user to set their last name to lol */
+  const verificationString = `I am authorizing cp-notes to use my identity: ${authId}`;
+  if(cfUserInfo.lastName !== verificationString) {
+    utils.throwCustomError(error400.VERIFICATION_FAILED);
+  }
+
+  const userKey = {
+    [ USER_PK ]: username
   };
+
+  const userUpdates = {
+    cfUsername: authCfUsername,
+    cfRating: cfUserInfo.rating || 0,
+    cfRank: cfUserInfo.rank || 'newbie'
+  };
+
+  const additionalExpressionAttributeValues = {
+    ':providedAuthCfUsername': authCfUsername,
+    ':providedAuthId': authId
+  };
+
+  const additionalConditions = ' AND authCfUsername = :providedAuthCfUsername' +
+    ' AND authId = :providedAuthId AND attribute_not_exists(cfUsername)';
+
+  const userUpdated = await dynamodb.updateValue(USER_TABLE, userKey, null,
+    userUpdates, true, additionalConditions, additionalExpressionAttributeValues
+  );
+
+  if(!userUpdated) {
+    utils.throwCustomError(error400.VERIFICATION_OVERRIDDEN);
+  }
 }
 
 module.exports.getProfile = getProfile;
@@ -140,3 +181,4 @@ module.exports.updateProfile = updateProfile;
 module.exports.updateUserAvatar = updateUserAvatar;
 module.exports.updateContribution = updateContribution;
 module.exports.beginCfVerification = beginCfVerification;
+module.exports.endCfVerification = endCfVerification;

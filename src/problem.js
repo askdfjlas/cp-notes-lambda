@@ -100,19 +100,6 @@ async function getProblemInfo(platform, problemId) {
   return problemInfo;
 }
 
-async function getRandomEasyProblem(platform) {
-  const allContests = await contestModule.getContests(platform);
-
-  const randomIndex = Math.floor(Math.random() * allContests.length);
-  const randomContest = allContests[randomIndex];
-  const randomContestId = contestModule.inflateContestId(randomContest.sk);
-
-  const randomContestProblems = await getProblems(platform, randomContestId);
-  const randomProblemId = randomContestProblems[0].sk;
-
-  return await getProblemInfo(platform, randomProblemId);
-}
-
 async function checkExistence(platform, dbProblemId) {
   const dbRows = await dynamodb.queryPrimaryKey(PROBLEM_TABLE, PROBLEM_PK,
     'sk', platform, dbProblemId, [ 'sk' ]
@@ -124,5 +111,4 @@ async function checkExistence(platform, dbProblemId) {
 module.exports.getProblems = getProblems;
 module.exports.inflateProblemId = inflateProblemId;
 module.exports.getProblemInfo = getProblemInfo;
-module.exports.getRandomEasyProblem = getRandomEasyProblem;
 module.exports.checkExistence = checkExistence;

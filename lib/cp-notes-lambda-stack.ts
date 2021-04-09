@@ -223,8 +223,6 @@ export class CpNotesLambdaStack extends cdk.Stack {
     commentsTable.grantReadWriteData(deleteCommentLambda);
 
     const verifyCfUsernameLambda = this.createDefaultNodeLambda('verifyCfUsername');
-    cacheBucket.grantReadWrite(verifyCfUsernameLambda);
-    problemsTable.grantReadWriteData(verifyCfUsernameLambda);
     usersTable.grantReadWriteData(verifyCfUsernameLambda);
 
     // Events

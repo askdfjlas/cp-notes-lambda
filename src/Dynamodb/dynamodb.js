@@ -207,9 +207,21 @@ async function insertValue(tableName, pk, valueObject, overwrite) {
 }
 
 async function updateValue(tableName, itemKey, additionUpdates, setUpdates,
-                           forceExistence=false, additionalConditions='') {
-  const [ updateExpression, expressionAttributeValues, expressionAttributeNames ] =
+                           forceExistence=false, additionalConditions='',
+                           additionalExpressionAttributeValues=null) {
+  let [ updateExpression, expressionAttributeValues, expressionAttributeNames ] =
     dynamodbUtils.generateUpdateExpression(additionUpdates, setUpdates);
+
+  additionalExpressionAttributeValues = dynamodbUtils.createItemFromObject(
+    additionalExpressionAttributeValues
+  );
+
+  if(additionalExpressionAttributeValues) {
+    expressionAttributeValues = {
+      ...expressionAttributeValues,
+      ...additionalExpressionAttributeValues
+    };
+  }
 
   const params = {
     TableName: tableName,
