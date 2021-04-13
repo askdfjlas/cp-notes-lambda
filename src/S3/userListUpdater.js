@@ -9,7 +9,7 @@ const PAGINATE_SIZE = 50;
 module.exports.handler = async function() {
   const params = {
     TableName: USER_TABLE,
-    ProjectionExpression: 'username, contribution'
+    ProjectionExpression: 'username, contribution, cfRank'
   };
 
   let rows = await dynamodb.scanPromise(params);

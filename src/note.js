@@ -92,8 +92,18 @@ async function getNotesFilteredList(platform, contestId, problemId, recent, page
     false, noteIndexName
   );
 
+  let userRanks = {};
+  for(const note of paginatedNotes) {
+    if(userRanks.hasOwnProperty(note.username)) {
+      continue;
+    }
+    const userTableRow = await userModule.getUserTableRow(note.username);
+    userRanks[note.username] = userTableRow.cfRank;
+  }
+
   return {
     notes: paginatedNotes,
+    userRanks: userRanks,
     totalPages: Math.max(totalPages, 1)
   };
 }
@@ -126,6 +136,10 @@ async function getNoteInfo(username, platform, problemId, tokenString, forcePubl
 
   delete noteRow.sk;
   noteRow.published = noteRow.published ? true : false;
+  noteRow.problemInfo = await problemModule.getProblemInfo(platform, problemId);
+
+  const authorTableRow = await userModule.getUserTableRow(username);
+  noteRow.authorCfRank = authorTableRow.cfRank;
 
   return noteRow;
 }

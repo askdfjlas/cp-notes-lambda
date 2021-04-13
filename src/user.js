@@ -13,12 +13,16 @@ const codeforces = require('./codeforces');
 const error400 = require('./error400');
 const utils = require('./utils');
 
-async function getProfile(username, basicInfoOnly, tokenString) {
+async function getUserTableRow(username) {
   const tableData = await dynamodb.queryPartitionKey(USER_TABLE, USER_PK, username);
   if(tableData.length === 0) {
     utils.throwCustomError(error400.USER_NOT_FOUND);
   }
-  const userTableRow = tableData[0];
+  return tableData[0];
+}
+
+async function getProfile(username, basicInfoOnly, tokenString) {
+  const userTableRow = await getUserTableRow(username);
 
   let userProfile = {
     username: username
@@ -174,6 +178,7 @@ async function endCfVerification(username, authId, authCfUsername, tokenString) 
   }
 }
 
+module.exports.getUserTableRow = getUserTableRow;
 module.exports.getProfile = getProfile;
 module.exports.getUsers = getUsers;
 module.exports.getUserAvatar = getUserAvatar;
