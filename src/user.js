@@ -157,13 +157,13 @@ async function endCfVerification(username, authId, authCfUsername, tokenString) 
     cfRank: cfUserInfo.rank || 'newbie'
   };
 
+  const additionalConditions = ' AND authCfUsername = :providedAuthCfUsername' +
+    ' AND authId = :providedAuthId AND attribute_not_exists(cfUsername)';
+
   const additionalExpressionAttributeValues = {
     ':providedAuthCfUsername': authCfUsername,
     ':providedAuthId': authId
   };
-
-  const additionalConditions = ' AND authCfUsername = :providedAuthCfUsername' +
-    ' AND authId = :providedAuthId AND attribute_not_exists(cfUsername)';
 
   const userUpdated = await dynamodb.updateValue(USER_TABLE, userKey, null,
     userUpdates, true, additionalConditions, additionalExpressionAttributeValues

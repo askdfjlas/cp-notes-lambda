@@ -265,6 +265,7 @@ module.exports.verifyCfUsername = async function(event) {
       await userModule.endCfVerification(
         username, authId, authCfUsername, tokenString
       );
+      return 'Success!';
     }
     else {
       return await userModule.beginCfVerification(

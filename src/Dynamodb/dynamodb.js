@@ -216,12 +216,10 @@ async function updateValue(tableName, itemKey, additionUpdates, setUpdates,
     additionalExpressionAttributeValues
   );
 
-  if(additionalExpressionAttributeValues) {
-    expressionAttributeValues = {
-      ...expressionAttributeValues,
-      ...additionalExpressionAttributeValues
-    };
-  }
+  expressionAttributeValues = {
+    ...expressionAttributeValues,
+    ...additionalExpressionAttributeValues
+  };
 
   const params = {
     TableName: tableName,

@@ -8,7 +8,7 @@ const MAX_RETRIES = 3;
 function isUsernameValid(username) {
   for(const char of username) {
     const isLowerCaseAlpha = (char >= 'a' && char <= 'z');
-    const isUpperCaseAlpha = (char >= 'A' && char <= 'A');
+    const isUpperCaseAlpha = (char >= 'A' && char <= 'Z');
     const isNumber = (char >= '0' && char <= '9');
 
     if(isLowerCaseAlpha || isUpperCaseAlpha || isNumber) continue;
