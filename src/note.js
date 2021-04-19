@@ -34,15 +34,23 @@ async function getUserNotes(username) {
     'level'
   ];
 
-  const rows = await dynamodb.queryPartitionKey(
+  const userTableRow = await userModule.getUserTableRow(username);
+  const userRanks = {
+    [ username ]: userTableRow.cfRank
+  };
+
+  const notes = await dynamodb.queryPartitionKey(
     NOTE_TABLE, NOTE_PK, username, true, projectedAttributes
   );
 
-  for(let row of rows) {
-    row.published = row.published ? true : false;
+  for(let note of notes) {
+    note.published = note.published ? true : false;
   }
 
-  return rows;
+  return {
+    notes: notes,
+    userRanks: userRanks
+  };
 }
 
 async function getNotesFilteredList(platform, contestId, problemId, recent, page) {
