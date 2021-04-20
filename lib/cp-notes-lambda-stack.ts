@@ -14,7 +14,10 @@ export class CpNotesLambdaStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: `index.${name}`,
       code: new lambda.AssetCode('src'),
-      timeout: cdk.Duration.seconds(6)
+      timeout: cdk.Duration.seconds(6),
+      environment: {
+        stage: process.env.AWS_PROFILE
+      }
     });
   }
 
@@ -116,8 +119,12 @@ export class CpNotesLambdaStack extends cdk.Stack {
     })
 
     // S3
+    let cacheBucketName = 'cp-notes-cache';
+    if(process.env.AWS_PROFILE === 'prod') {
+        cacheBucketName += '-prod';
+    }
     const cacheBucket = new s3.Bucket(this, 'cp-notes-cache', {
-      bucketName: 'cp-notes-cache'
+      bucketName: cacheBucketName
     });
 
     // Lambda
@@ -141,7 +148,10 @@ export class CpNotesLambdaStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'S3/userListUpdater.handler',
       code: new lambda.AssetCode('src'),
-      timeout: cdk.Duration.seconds(30)
+      timeout: cdk.Duration.seconds(30),
+      environment: {
+        stage: process.env.AWS_PROFILE
+      }
     });
     usersTable.grantReadWriteData(cacheUpdateUserListLambda);
     cacheBucket.grantReadWrite(cacheUpdateUserListLambda);
@@ -150,7 +160,10 @@ export class CpNotesLambdaStack extends cdk.Stack {
       runtime: lambda.Runtime.PYTHON_3_8,
       handler: 'index.handler',
       code: new lambda.AssetCode('cp-notes-problem-data/src'),
-      timeout: cdk.Duration.minutes(10)
+      timeout: cdk.Duration.minutes(10),
+      environment: {
+        stage: process.env.AWS_PROFILE
+      }
     });
     cacheBucket.grantReadWrite(cacheUpdateProblemDataLambda);
     contestsTable.grantReadWriteData(cacheUpdateProblemDataLambda);
