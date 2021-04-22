@@ -9,15 +9,21 @@ const events = require('@aws-cdk/aws-events');
 const targets = require('@aws-cdk/aws-events-targets');
 
 export class CpNotesLambdaStack extends cdk.Stack {
-  createDefaultNodeLambda(name: string) {
+  createEnvironmentLambda(name: string, params: object) {
     return new lambda.Function(this, name, {
-      runtime: lambda.Runtime.NODEJS_12_X,
-      handler: `index.${name}`,
-      code: new lambda.AssetCode('src'),
-      timeout: cdk.Duration.seconds(6),
+      ...params,
       environment: {
         stage: process.env.AWS_PROFILE
       }
+    });
+  }
+
+  createDefaultNodeLambda(name: string) {
+    return this.createEnvironmentLambda(name, {
+      runtime: lambda.Runtime.NODEJS_12_X,
+      handler: `index.${name}`,
+      code: new lambda.AssetCode('src'),
+      timeout: cdk.Duration.seconds(6)
     });
   }
 
@@ -128,7 +134,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     });
 
     // Lambda
-    const cognitoPreSignUpLambda = new lambda.Function(this, 'cognitoPreSignUp', {
+    const cognitoPreSignUpLambda = this.createEnvironmentLambda('cognitoPreSignUp', {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'preSignUp.handler',
       code: new lambda.AssetCode('src/Cognito')
@@ -137,33 +143,27 @@ export class CpNotesLambdaStack extends cdk.Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')
     );
 
-    const cognitoPostConfirmationLambda = new lambda.Function(this, 'cognitoPostConfirmation', {
+    const cognitoPostConfirmationLambda = this.createEnvironmentLambda('cognitoPostConfirmation', {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'Cognito/postConfirmation.handler',
       code: new lambda.AssetCode('src')
     });
     usersTable.grantReadWriteData(cognitoPostConfirmationLambda);
 
-    const cacheUpdateUserListLambda = new lambda.Function(this, 'cacheUpdateUserList', {
+    const cacheUpdateUserListLambda = this.createEnvironmentLambda('cacheUpdateUserList', {
       runtime: lambda.Runtime.NODEJS_12_X,
       handler: 'S3/userListUpdater.handler',
       code: new lambda.AssetCode('src'),
-      timeout: cdk.Duration.seconds(30),
-      environment: {
-        stage: process.env.AWS_PROFILE
-      }
+      timeout: cdk.Duration.seconds(30)
     });
     usersTable.grantReadWriteData(cacheUpdateUserListLambda);
     cacheBucket.grantReadWrite(cacheUpdateUserListLambda);
 
-    const cacheUpdateProblemDataLambda = new lambda.Function(this, 'cacheUpdateProblemData', {
+    const cacheUpdateProblemDataLambda = this.createEnvironmentLambda('cacheUpdateProblemData', {
       runtime: lambda.Runtime.PYTHON_3_8,
       handler: 'index.handler',
       code: new lambda.AssetCode('cp-notes-problem-data/src'),
-      timeout: cdk.Duration.minutes(10),
-      environment: {
-        stage: process.env.AWS_PROFILE
-      }
+      timeout: cdk.Duration.minutes(10)
     });
     cacheBucket.grantReadWrite(cacheUpdateProblemDataLambda);
     contestsTable.grantReadWriteData(cacheUpdateProblemDataLambda);

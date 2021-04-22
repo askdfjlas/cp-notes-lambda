@@ -1,4 +1,5 @@
-const cognitoIds = require('./ids_that_are_public_anyways');
+let cognitoIds = require('./ids_that_are_public_anyways');
+cognitoIds = cognitoIds[process.env.stage];
 
 module.exports = Object.freeze({
   POOL_REGION: 'us-east-1',
