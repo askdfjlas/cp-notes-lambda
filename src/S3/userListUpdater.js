@@ -2,6 +2,7 @@ const s3 = require('./s3');
 const cacheConstants = require('./cacheConstants');
 const dynamodb = require('../Dynamodb/dynamodb');
 const dynamodbUtils = require('../Dynamodb/dynamodbUtils');
+const userModule = require('../user');
 
 const USER_TABLE = 'users';
 const PAGINATE_SIZE = 50;
@@ -28,6 +29,9 @@ module.exports.handler = async function() {
     };
 
     for(let j = startIndex; j < endIndex; j++) {
+      users[j].contribution = userModule.convertContribution(
+        users[j].contribution
+      );
       userPageObject.users.push(users[j]);
     }
 

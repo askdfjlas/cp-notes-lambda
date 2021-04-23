@@ -21,6 +21,11 @@ async function getUserTableRow(username) {
   return tableData[0];
 }
 
+function convertContribution(contribution) {
+  const dividedContribution = Math.ceil(contribution/2);
+  return Math.floor(Math.cbrt(dividedContribution));
+}
+
 async function getProfile(username, basicInfoOnly, tokenString) {
   const userTableRow = await getUserTableRow(username);
 
@@ -35,7 +40,7 @@ async function getProfile(username, basicInfoOnly, tokenString) {
   }
 
   if(!basicInfoOnly) {
-    userProfile.contribution = userTableRow.contribution;
+    userProfile.contribution = convertContribution(userTableRow.contribution);
 
     let requesterUsername = null;
     try {
@@ -50,12 +55,8 @@ async function getProfile(username, basicInfoOnly, tokenString) {
     }
   }
 
-  if(userTableRow.avatarExtension) {
-    userProfile.avatarData = await getUserAvatar(username);
-  }
-  else {
-    userProfile.avatarData = await getUserAvatar('!');
-  }
+  const avatarFilename = userTableRow.avatarExtension ? username : '!';
+  userProfile.avatarData = await getUserAvatar(avatarFilename);
 
   return userProfile;
 }
@@ -187,3 +188,4 @@ module.exports.updateUserAvatar = updateUserAvatar;
 module.exports.updateContribution = updateContribution;
 module.exports.beginCfVerification = beginCfVerification;
 module.exports.endCfVerification = endCfVerification;
+module.exports.convertContribution = convertContribution;
