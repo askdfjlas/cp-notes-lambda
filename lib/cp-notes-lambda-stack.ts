@@ -136,8 +136,8 @@ export class CpNotesLambdaStack extends cdk.Stack {
     // Lambda
     const cognitoPreSignUpLambda = this.createEnvironmentLambda('cognitoPreSignUp', {
       runtime: lambda.Runtime.NODEJS_12_X,
-      handler: 'preSignUp.handler',
-      code: new lambda.AssetCode('src/Cognito')
+      handler: 'Cognito/preSignUp.handler',
+      code: new lambda.AssetCode('src')
     });
     cognitoPreSignUpLambda.role.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('AmazonCognitoReadOnly')

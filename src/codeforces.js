@@ -40,4 +40,5 @@ async function getUserInfo(username) {
   utils.throwCustomError(error400.CODEFORCES_DOWN);
 }
 
+module.exports.isUsernameValid = isUsernameValid;
 module.exports.getUserInfo = getUserInfo;
