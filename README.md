@@ -1,6 +1,6 @@
 ## CDK Lambda Stack for cp-notes
 
-This repository contains the CDK (Cloud Development Kit) stack which runs the backend for [cp-notes](cp-notes.com)! Most of the 'interesting' code is in the `src/` folder. The frontend code can be found [here](https://github.com/askdfjlas/askdfjlas.github.io).
+This repository contains the CDK (Cloud Development Kit) stack which runs the backend for [cp-notes](https://cp-notes.com)! Most of the 'interesting' code is in the `src/` folder. The frontend code can be found [here](https://github.com/askdfjlas/askdfjlas.github.io).
 
 ## General Architecture
 
