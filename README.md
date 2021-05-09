@@ -1,16 +1,11 @@
-hopefully will become the cp-notes backend one day :)
+## CDK Lambda Stack for cp-notes
 
-# Welcome to your CDK TypeScript project!
+This repository contains the CDK (Cloud Development Kit) stack which runs the backend for [cp-notes](https://cp-notes.com)! Most of the 'interesting' code is in the `src/` folder. The frontend code can be found [here](https://github.com/askdfjlas/askdfjlas.github.io).
 
-This is a blank project for TypeScript development with CDK.
+## General Architecture
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+All computations are performed through AWS Lambda functions. The backend exposes an API via API Gateway, and uses DynamoDB as a data store. Several other services are used, some of which include Cognito for user auth, and CloudWatch events for the periodic scraping of several competitive programming platforms (in order to populate problem databases).
 
-## Useful commands
+## Contributing
 
- * `npm run build`   compile typescript to js
- * `npm run watch`   watch for changes and compile
- * `npm run test`    perform the jest unit tests
- * `cdk deploy`      deploy this stack to your default AWS account/region
- * `cdk diff`        compare deployed stack with current state
- * `cdk synth`       emits the synthesized CloudFormation template
+Probably won't accept any contributions, feel free to open up issues though!
