@@ -39,14 +39,16 @@ function getProblemLink(platform, problemId, rd) {
       arr = problemId.split('@');
       contestCode = arr[1].split('#')[0].toLowerCase();
       problemCode = arr[1].split('#')[1].toLowerCase();
-      return `https://atcoder.jp/contests/${contestCode}/tasks/${contestCode}_${problemCode}`
+      return `https://atcoder.jp/contests/${contestCode}/tasks/${contestCode}_${problemCode}`;
     case 'TopCoder':
-      return `https://community.topcoder.com/stat?c=problem_statement&pm=${rd}`
+      return `https://community.topcoder.com/stat?c=problem_statement&pm=${rd}`;
     case 'Project Euler':
       problemCode = dynamodbUtils.removePrefixZeroes(problemId.split('#')[1]);
-      return `https://projecteuler.net/problem=${problemCode}`
+      return `https://projecteuler.net/problem=${problemCode}`;
     case 'ICPC':
-      return `https://icpc.kattis.com/problems/${rd}`
+      return `https://icpc.kattis.com/problems/${rd}`;
+    case 'Kattis':
+      return `https://open.kattis.com/problems/${rd}`;
     default:
       return null;
   }
