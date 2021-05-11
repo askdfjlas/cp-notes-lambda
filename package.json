@@ -33,6 +33,8 @@
     "node-notifier": ">=9.0.0",
     "source-map-support": "^0.5.16",
     "elliptic": ">=6.5.4",
-    "y18n": ">=4.0.1"
+    "y18n": ">=4.0.1",
+    "lodash": ">=4.17.21",
+    "hosted-git-info": ">=2.8.9"
   }
 }
