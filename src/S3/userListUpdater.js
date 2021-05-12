@@ -6,6 +6,13 @@ const userModule = require('../user');
 
 const USER_TABLE = 'users';
 const PAGINATE_SIZE = 50;
+const MY_USERNAME = 'askd';
+
+function compareUsers(user1, user2) {
+  if(user1.username === MY_USERNAME) return 1;
+  if(user2.username === MY_USERNAME) return -1;
+  return user2.contribution - user1.contribution;
+}
 
 module.exports.handler = async function() {
   const params = {
@@ -15,7 +22,7 @@ module.exports.handler = async function() {
 
   let rows = await dynamodb.scanPromise(params);
   let users = dynamodbUtils.filterRows(rows);
-  users.sort((user1, user2) => user2.contribution - user1.contribution);
+  users.sort(compareUsers);
 
   const totalPages = Math.ceil(users.length/PAGINATE_SIZE);
   for(let i = 0; i < totalPages; i++) {
