@@ -49,6 +49,9 @@ function getProblemLink(platform, problemId, rd) {
       return `https://icpc.kattis.com/problems/${rd}`;
     case 'Kattis':
       return `https://open.kattis.com/problems/${rd}`;
+    case 'yukicoder':
+      problemCode = dynamodbUtils.removePrefixZeroes(problemId.split('#')[1]);
+      return `https://yukicoder.me/problems/no/${problemCode}`
     default:
       return null;
   }
