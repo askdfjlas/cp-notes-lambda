@@ -12,3 +12,5 @@ cdk.out
 .DS_Store
 ids_that_are_public_anyways.json
 cp-notes-problem-data
+amplify_config.json
+test_account_info.json
