@@ -7,17 +7,15 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest",
+    "test": "mocha --timeout 5000",
     "cdk": "cdk",
     "deploy": "cdk deploy"
   },
   "devDependencies": {
-    "@aws-cdk/assert": "1.63.0",
-    "@types/jest": "^26.0.10",
     "@types/node": "10.17.27",
     "aws-cdk": "^1.96.0",
-    "jest": "^26.4.2",
-    "ts-jest": "^26.2.0",
+    "chai": "^4.3.4",
+    "mocha": "^8.4.0",
     "ts-node": "^8.1.0",
     "typescript": "~3.9.7"
   },
@@ -29,12 +27,13 @@
     "@aws-cdk/aws-iam": "^1.83.0",
     "@aws-cdk/aws-lambda": "^1.63.0",
     "@aws-cdk/core": "1.63.0",
+    "aws-amplify": "^4.0.2",
     "aws-sdk": "^2.757.0",
+    "elliptic": ">=6.5.4",
+    "hosted-git-info": ">=2.8.9",
+    "lodash": ">=4.17.21",
     "node-notifier": ">=9.0.0",
     "source-map-support": "^0.5.16",
-    "elliptic": ">=6.5.4",
-    "y18n": ">=4.0.1",
-    "lodash": ">=4.17.21",
-    "hosted-git-info": ">=2.8.9"
+    "y18n": ">=4.0.1"
   }
 }
