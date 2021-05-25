@@ -53,7 +53,7 @@ function getProblemLink(platform, problemId, rd) {
       problemCode = dynamodbUtils.removePrefixZeroes(problemId.split('#')[1]);
       return `https://yukicoder.me/problems/no/${problemCode}`;
     case 'DMOJ':
-      return `https://dmoj.ca/problem/${rd}`
+      return `https://dmoj.ca/problem/${rd}`;
     default:
       return null;
   }

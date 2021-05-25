@@ -168,6 +168,7 @@ export class CpNotesLambdaStack extends cdk.Stack {
     cacheBucket.grantReadWrite(cacheUpdateProblemDataLambda);
     contestsTable.grantReadWriteData(cacheUpdateProblemDataLambda);
     problemsTable.grantReadWriteData(cacheUpdateProblemDataLambda);
+    usersTable.grantReadWriteData(cacheUpdateProblemDataLambda);
 
     const getUsersLambda = this.createDefaultNodeLambda('getUsers');
     getUsersLambda.role.addManagedPolicy(
